@@ -16,11 +16,21 @@ const WOCHENTAG_KUERZEL = {
   Freitag: 'Fr', Samstag: 'Sa', Sonntag: 'So'
 };
 
+const WOCHENTAG_SPALTE = {
+  Montag: 0, Dienstag: 1, Mittwoch: 2, Donnerstag: 3,
+  Freitag: 4, Samstag: 5, Sonntag: 6
+};
+
 export function tagesLeisteMarkup() {
   const heute = heutigerPlantag().datum;
   const wochen = PLAN.wochen.map((woche) => {
     const tage = PLAN.tage.filter((t) => t.woche === woche.nummer);
-    const felder = tage.map((tag) => {
+    // Eine angebrochene Woche - der Vorlauf beginnt an einem Freitag - wird auf
+    // ihre Wochentagsspalten geschoben, damit die Leiste als Kalender lesbar bleibt.
+    const versatz = WOCHENTAG_SPALTE[tage[0].wochentag];
+    const leer = Array.from({ length: versatz },
+      () => '<div class="leiste-feld leer" aria-hidden="true"></div>').join('');
+    const felder = leer + tage.map((tag) => {
       const befund = tagesZone(tag.datum);
       const istHeute = tag.datum === heute;
       return `<button type="button" class="leiste-feld zone-feld-${befund.zone}${istHeute ? ' heute' : ''}"
@@ -34,13 +44,13 @@ export function tagesLeisteMarkup() {
       </button>`;
     }).join('');
     return `<div class="leiste-woche">
-      <p class="eyebrow">${esc(woche.titel)}</p>
+      <p class="eyebrow">${esc(woche.titel)}${woche.ergaenzt ? ' · ergänzt' : ''}</p>
       <div class="leiste">${felder}</div>
     </div>`;
   }).join('');
 
   return `<section class="abschnitt">
-    <h2>Die zwei Wochen</h2>
+    <h2>Alle Tage</h2>
     ${wochen}
     <ul class="leiste-legende">
       <li>VB Volleyball</li>

@@ -87,11 +87,14 @@ console.log('Ansichten mit leerem Speicher:');
 merke(pruefe('Start (über app.js beim Laden gezeichnet)', () => {
   if (!document.getElementById('inhalt')) throw new Error('kein Inhaltsbehälter');
 }));
-merke(pruefe('14-Tage-Leiste', () => {
+merke(pruefe('Tagesleiste', () => {
   const markup = tagesLeisteMarkup();
-  if (!markup.includes('leiste-feld')) throw new Error('keine Felder');
-  if ((markup.match(/leiste-feld/g) ?? []).length !== 14) throw new Error('nicht 14 Felder');
+  const felder = (markup.match(/data-datum="/g) ?? []).length;
+  if (felder !== PLAN.tage.length) throw new Error(`${felder} Felder statt ${PLAN.tage.length}`);
   if (markup.includes('undefined')) throw new Error('undefined im Markup');
+  // Der Vorlauf beginnt an einem Freitag und braucht vier leere Spalten davor.
+  const leere = (markup.match(/leiste-feld leer/g) ?? []).length;
+  if (leere !== 4) throw new Error(`${leere} leere Spalten statt 4`);
 }));
 merke(pruefe('Plan', () => zeichnePlan(element())));
 merke(pruefe('Warnzeichen-Dialog', () => {
@@ -124,7 +127,7 @@ merke(pruefe('Montag 21.9. gelb mit Reduktionsrechnung', () => zeichneHeute(elem
 merke(pruefe('Mittwoch 23.9. Gate mit Vergleichswert', () => zeichneHeute(element(), '2026-09-23')));
 merke(pruefe('Donnerstag 24.9. rot', () => zeichneHeute(element(), '2026-09-24')));
 merke(pruefe('Samstag 26.9. mit Notiz und Sonderzeichen', () => zeichneHeute(element(), '2026-09-26')));
-merke(pruefe('14-Tage-Leiste mit Werten', () => {
+merke(pruefe('Tagesleiste mit Werten', () => {
   const markup = tagesLeisteMarkup();
   if (!/zone-feld-(gruen|gelb|rot)/.test(markup)) throw new Error('keine Ampelfarbe gesetzt');
 }));

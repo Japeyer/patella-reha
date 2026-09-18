@@ -7,17 +7,59 @@ const quelle = readFileSync(new URL('../docs/plan-original.txt', import.meta.url
 const zeilen = quelle.split('\n').map((z) => z.trim());
 const imPlan = (text) => zeilen.includes(String(text).trim());
 
-test('deckt genau die 14 Plantage ab', () => {
-  assert.equal(PLAN.tage.length, 14);
-  assert.equal(PLAN.tage[0].datum, '2026-09-21');
-  assert.equal(PLAN.tage[13].datum, '2026-10-04');
+// Die drei Vorlauftage stehen nicht im Dokument; sie uebernehmen nur dessen
+// Wochenmuster. Fuer die Treuepruefung zaehlen die Tage aus der Quelle.
+const quellTage = PLAN.tage.filter((tag) => tag.herkunft !== 'ergaenzt');
+const vorlaufTage = PLAN.tage.filter((tag) => tag.herkunft === 'ergaenzt');
+
+test('deckt die 14 Plantage plus drei Vorlauftage ab', () => {
+  assert.equal(PLAN.tage.length, 17);
+  assert.equal(quellTage.length, 14);
+  assert.equal(vorlaufTage.length, 3);
+  assert.equal(PLAN.tage[0].datum, '2026-09-18');
+  assert.equal(quellTage[0].datum, '2026-09-21');
+  assert.equal(PLAN.tage[16].datum, '2026-10-04');
   const daten = PLAN.tage.map((t) => t.datum);
-  assert.equal(new Set(daten).size, 14, 'keine doppelten Datumsangaben');
+  assert.equal(new Set(daten).size, 17, 'keine doppelten Datumsangaben');
   assert.deepEqual(daten, [...daten].sort(), 'aufsteigend sortiert');
 });
 
+test('der Vorlauf spiegelt das Wochenmuster des Plans', () => {
+  assert.deepEqual(
+    vorlaufTage.map((t) => [t.datum, t.wochentag, t.typ]),
+    [
+      ['2026-09-18', 'Freitag', 'regeneration'],
+      ['2026-09-19', 'Samstag', 'kraft-b'],
+      ['2026-09-20', 'Sonntag', 'kontrolltag']
+    ]
+  );
+  // Jeder Vorlauftag nennt seinen Vorbildtag, und der hat denselben Typ.
+  for (const tag of vorlaufTage) {
+    const vorbild = PLAN.tage.find((v) => v.datum === tag.vorbildTag);
+    assert.ok(vorbild, `${tag.datum}: Vorbildtag vorhanden`);
+    assert.equal(vorbild.typ, tag.typ, `${tag.datum}: gleicher Typ wie ${tag.vorbildTag}`);
+    assert.equal(vorbild.wochentag, tag.wochentag, `${tag.datum}: gleicher Wochentag`);
+  }
+});
+
+test('die Vorlauftage übernehmen die Übungen ihres Vorbildtags wörtlich', () => {
+  for (const tag of vorlaufTage) {
+    const vorbild = PLAN.tage.find((v) => v.datum === tag.vorbildTag);
+    const namen = (t) => t.bloecke.flatMap((b) => b.uebungen.map((u) => u.name));
+    assert.deepEqual(namen(tag), namen(vorbild), `${tag.datum}: gleiche Übungen`);
+    assert.deepEqual(tag.bedingungen, vorbild.bedingungen, `${tag.datum}: gleiche Bedingungen`);
+    // Und damit steht jeder Text weiterhin wörtlich in der Quelle.
+    for (const name of namen(tag)) assert.ok(imPlan(name), `wörtlich erwartet: ${name}`);
+  }
+});
+
+test('Vorlauftage sind als ergänzt gekennzeichnet, Quelltage nicht', () => {
+  for (const tag of quellTage) assert.equal(tag.herkunft, undefined, `${tag.datum}`);
+  for (const tag of vorlaufTage) assert.equal(tag.herkunft, 'ergaenzt', `${tag.datum}`);
+});
+
 test('jeder Tag hat Wochennummer, Typ und Titel aus der Quelle', () => {
-  for (const tag of PLAN.tage) {
+  for (const tag of quellTage) {
     assert.ok(tag.woche === 1 || tag.woche === 2, `${tag.datum}: Woche 1 oder 2`);
     assert.ok(
       ['volleyball-reduziert', 'volleyball-kontrolliert', 'kraft-a', 'kraft-b',
@@ -26,6 +68,13 @@ test('jeder Tag hat Wochennummer, Typ und Titel aus der Quelle', () => {
     );
     assert.ok(imPlan(tag.titel), `${tag.datum}: Titel wörtlich in der Quelle: ${tag.titel}`);
   }
+});
+
+test('der Vorlauf ist Woche 0', () => {
+  for (const tag of vorlaufTage) assert.equal(tag.woche, 0, tag.datum);
+  assert.equal(PLAN.wochen[0].nummer, 0);
+  assert.equal(PLAN.wochen[0].ergaenzt, true);
+  assert.equal(PLAN.wochen.length, 3);
 });
 
 test('Woche 1 umfasst 21. bis 27. September, Woche 2 den Rest', () => {

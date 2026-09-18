@@ -808,6 +808,7 @@ ul.kreuz li::before { content: '✕'; color: var(--rot); flex: none; font-weight
 }
 
 .leiste-feld.heute { outline: 2px solid var(--akzent); outline-offset: -2px; }
+.leiste-feld.leer { background: transparent; border-color: transparent; cursor: default; }
 
 .leiste-legende {
   display: flex;
@@ -852,3 +853,12 @@ ul.kreuz li::before { content: '✕'; color: var(--rot); flex: none; font-weight
 }
 
 .fuss .abgrenzung { flex: 1 1 100%; }
+
+.ergaenzt-hinweis {
+  font-size: 12px;
+  color: var(--text-leise);
+  background: var(--flaeche-leise);
+  border: 1px dashed var(--rand-stark);
+  border-radius: 4px;
+  padding: 8px 10px;
+}

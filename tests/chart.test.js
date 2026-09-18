@@ -27,16 +27,18 @@ test('die Morgenreihe zeigt den Ausgangsschmerz, nicht nur den Ruhewert', () => 
 test('Reihendaten haben einen Punkt pro Plantag', () => {
   const daten = reihenDaten(eintraege, PLAN.tage);
   assert.equal(daten.length, 4);
-  for (const reihe of daten) assert.equal(reihe.punkte.length, 14);
+  for (const reihe of daten) assert.equal(reihe.punkte.length, PLAN.tage.length);
 });
 
 test('Tage ohne Eintrag sind null, nicht Nullwerte', () => {
   const daten = reihenDaten(eintraege, PLAN.tage);
   const morgen = daten.find((r) => r.schluessel === 'morgen');
-  assert.equal(morgen.punkte[0].wert, 2);
-  assert.equal(morgen.punkte[1].wert, null, '22. September ohne Eintrag');
+  const bei = (datum) => morgen.punkte.find((p) => p.datum === datum).wert;
+  assert.equal(bei('2026-09-18'), null, 'Vorlauftag ohne Eintrag');
+  assert.equal(bei('2026-09-21'), 2);
+  assert.equal(bei('2026-09-22'), null, '22. September ohne Eintrag');
   // 23. September: Ruhe 4, Treppe 5 - der höhere Wert zählt
-  assert.equal(morgen.punkte[2].wert, 5);
+  assert.equal(bei('2026-09-23'), 5);
 });
 
 test('SVG enthält Zonenbänder, Achse und eine Linie je Reihe mit Werten', () => {
@@ -67,7 +69,10 @@ test('nurMorgen zeichnet ausschliesslich die Morgenreihe', () => {
 test('Trainingstage sind auf der Zeitachse markiert', () => {
   const svg = svgVerlauf(reihenDaten(eintraege, PLAN.tage), PLAN.tage, { breite: 360, hoehe: 240 });
   const marken = svg.match(/class="tagmarke[^"]*"/g) ?? [];
-  assert.equal(marken.length, 8, 'vier Volleyball- und vier Krafttage');
+  const erwartet = PLAN.tage.filter((tag) => tag.typ.startsWith('volleyball')
+    || tag.typ === 'kraft-a' || tag.typ === 'kraft-b').length;
+  assert.equal(marken.length, erwartet, 'jeder Volleyball- und Krafttag eine Marke');
+  assert.equal(erwartet, 9, 'vier Volleyball- und fünf Krafttage');
 });
 
 test('Skala reicht immer von 0 bis 10 und markiert die Grenze 3', () => {

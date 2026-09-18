@@ -3,13 +3,34 @@
 **App: https://japeyer.github.io/patella-reha/**
 
 Begleiter für den 2-Wochen-Rehaplan der Patellarsehne, 21. September bis
-4. Oktober 2026.
+4. Oktober 2026, mit drei ergänzten Vorlauftagen ab Freitag, 18. September.
 
 Der Startbildschirm beantwortet drei Fragen in dieser Reihenfolge: was steht
 heute an, was ist heute im Volleyball erlaubt, und welcher Schmerzwert ist als
 nächster fällig. Alles Weitere — Übungen, Sprungzähler, Befundbegründung,
 Fortschritts-Gate, Auswertungsbogen — liegt unter "Mehr zum Tag" eine Ebene
 tiefer. Drei Ansichten: Heute, Verlauf, Plan.
+
+## Vorlauf vor dem Planbeginn
+
+Der Plan startet am Montag, 21. September. Damit schon vorher mitgeschrieben
+wird, führt die App drei zusätzliche Tage — Freitag 18., Samstag 19. und
+Sonntag 20. September — nach demselben Wochenmuster: Pause, Kraft B,
+Kontrolltag. Sie übernehmen die Übungen und Bedingungen der entsprechenden
+Wochentage der Woche 1 (25., 26. und 27. September) wörtlich.
+
+**Diese drei Tage stehen nicht im Quelldokument.** Sie tragen das Feld
+, sind in der App als ergänzt ausgewiesen und aus der
+Datentreue-Prüfung ausgenommen. Alles, was sie anzeigen, stammt trotzdem
+wörtlich aus dem Dokument.
+
+Fachlich zählen sie voll mit: die Krafteinheit vom Samstag ist die letzte
+Belastung vor dem ersten Volleyball am Montag und geht damit über die
+24-Stunden-Reaktion vom Sonntagmorgen in die Montags-Freigabe ein.
+
+Weil Kraft B nur auf den Donnerstag verweist () und es vor dem 19. September keinen gibt,
+löst die App den Verweis auf und zeigt Tempo und Schmerzgrenze der Kraft-A-
+Einheit direkt an — an jedem Kraft-B-Tag.
 
 ## Messmethodik
 
@@ -140,7 +161,7 @@ dass nichts behalten wird.
 ## Prüfen
 
 ```
-node --test                    # 100 Tests: Datentreue, Ausgangsschmerz, Zonen, Gates, Freigabe, Speicher, Diagramm
+node --test                    # 106 Tests: Datentreue, Ausgangsschmerz, Zonen, Gates, Freigabe, Speicher, Diagramm
 node tools/vollstaendigkeit.mjs  # prüft, dass jede Quellzeile übernommen ist
 node tools/smoke.mjs             # führt alle Ansichten ohne Browser aus
 ```

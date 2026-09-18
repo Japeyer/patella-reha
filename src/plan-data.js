@@ -11,7 +11,9 @@ export const PLAN = Object.freeze({
   // Z. 1-4
   titel: '2-Wochen-Plan Patellarsehne',
   zeitraum: {
-    von: '2026-09-21',
+    // von = erster Tag, den die App fuehrt; planVon = Beginn laut Dokument.
+    von: '2026-09-18',
+    planVon: '2026-09-21',
     bis: '2026-10-04',
     text: 'Zeitraum: Montag, 21. September bis Sonntag, 4. Oktober 2026'
   },
@@ -113,11 +115,119 @@ export const PLAN = Object.freeze({
 
   // Z. 67 und Z. 155
   wochen: [
+    { nummer: 0, titel: 'Vorlauf ab Freitag, 18. September', ergaenzt: true },
     { nummer: 1, titel: 'Woche 1: Belastung beruhigen und Kraft einführen' },
     { nummer: 2, titel: 'Woche 2: Vorsichtige Progression' }
   ],
 
   tage: [
+    // Vorlauf, nicht im Quelldokument: uebernimmt das Wochenmuster des Plans,
+    // damit schon vor dem 21. September mitgeschrieben wird. Alle Uebungstexte
+    // stammen woertlich von den entsprechenden Wochentagen der Woche 1
+    // (Z. 127-132, 133-144, 145-149).
+    {
+      datum: '2026-09-18',
+      wochentag: 'Freitag',
+      woche: 0,
+      typ: 'regeneration',
+      titel: 'Freitag, 18. September: Regeneration',
+      herkunft: 'ergaenzt',
+      vorbildTag: '2026-09-25',
+      bedingungen: [],
+      bloecke: [
+        {
+          titel: null,
+          einleitung: null,
+          uebungen: [
+            { name: 'Alltag normal, sofern nicht schmerzverstärkend' },
+            { name: 'optional 20 bis 30 Minuten lockeres Radfahren' },
+            { name: 'kein Sprungtraining' },
+            { name: 'keine schweren Knieübungen' },
+            { name: 'bei Bedarf isometrische Übung 4 × 30 Sekunden', saetze: 4, dauerSek: [30, 30] }
+          ]
+        }
+      ],
+      volleyball: null,
+      funktionstest: null
+    },
+
+    {
+      datum: '2026-09-19',
+      wochentag: 'Samstag',
+      woche: 0,
+      typ: 'kraft-b',
+      titel: 'Samstag, 19. September: Kraft B',
+      herkunft: 'ergaenzt',
+      vorbildTag: '2026-09-26',
+      bedingungen: ['Gleiches Tempo und gleiche Schmerzregeln wie am Donnerstag.'],
+      bloecke: [
+        {
+          titel: null,
+          einleitung: null,
+          uebungen: [
+            {
+              name: 'Beinpresse oder Goblet Squat',
+              angabe: '3 × 8 bis 10',
+              saetze: 3,
+              wiederholungen: [8, 10]
+            },
+            {
+              name: 'Rückwärts-Ausfallschritt',
+              angabe: '3 × 8 pro Seite',
+              saetze: 3,
+              wiederholungen: 8,
+              proSeite: true
+            },
+            {
+              name: 'Beinstrecker oder Spanish Squat mit Zusatzlast',
+              angabe: '3 × 10 beziehungsweise 4 × 30 Sekunden',
+              saetze: 3,
+              wiederholungen: 10
+            },
+            {
+              name: 'Rumänisches Kreuzheben',
+              angabe: '3 × 8 bis 10',
+              saetze: 3,
+              wiederholungen: [8, 10]
+            },
+            {
+              name: 'Wadenheben sitzend oder stehend',
+              angabe: '3 × 12',
+              saetze: 3,
+              wiederholungen: 12
+            }
+          ]
+        }
+      ],
+      volleyball: null,
+      funktionstest: null
+    },
+
+    {
+      datum: '2026-09-20',
+      wochentag: 'Sonntag',
+      woche: 0,
+      typ: 'kontrolltag',
+      titel: 'Sonntag, 20. September: Kontrolltag',
+      herkunft: 'ergaenzt',
+      vorbildTag: '2026-09-27',
+      bedingungen: [],
+      bloecke: [
+        {
+          titel: null,
+          einleitung: null,
+          uebungen: [
+            { name: 'kein Sprungtraining' },
+            { name: 'lockerer Spaziergang oder Fahrrad' },
+            { name: 'Schmerz in Ruhe und beim Treppenabwärtsgehen notieren' },
+            { name: 'mit dem vorherigen Sonntag beziehungsweise Wochenbeginn vergleichen' }
+          ]
+        }
+      ],
+      volleyball: null,
+      funktionstest: null
+    },
+
     // Z. 68-84
     {
       datum: '2026-09-21',

@@ -257,6 +257,25 @@ export function tagesLeitsaetze(tag) {
   return tag.bloecke.flatMap((block) => block.uebungen.map((u) => u.name)).slice(0, 3);
 }
 
+// Kraft B sagt nur "Gleiches Tempo und gleiche Schmerzregeln wie am Donnerstag"
+// (Z. 144). Der Verweis wird aufgeloest, damit die Schmerzgrenze dort steht, wo
+// sie gebraucht wird - besonders am ergaenzten Samstag, vor dem es noch keinen
+// Donnerstag gab.
+export function verwieseneRegeln(tag) {
+  if (tag.typ !== 'kraft-b') return null;
+  const kraftA = PLAN.tage.find((t) => t.typ === 'kraft-a' && t.herkunft !== 'ergaenzt');
+  if (!kraftA) return null;
+  const belastung = kraftA.bloecke.find((b) => b.titel === 'Belastung');
+  const hauptteil = kraftA.bloecke.find((b) => b.titel === 'Hauptteil');
+  const tempo = hauptteil?.uebungen.find((u) => u.tempo)?.tempo ?? null;
+  if (!belastung) return null;
+  return {
+    von: kraftA.titel,
+    tempo,
+    saetze: belastung.uebungen.map((u) => u.name)
+  };
+}
+
 const MONTAG_DER_WOCHE = { 1: '2026-09-21', 2: '2026-09-28' };
 
 // Sprunglimit des Tages.

@@ -7,7 +7,7 @@
 
 import { PLAN } from './plan-data.js';
 import {
-  zoneFuerTag, freigabeVorab, tagesLeitsaetze, ausgangsschmerz, sprungLimit,
+  zoneFuerTag, freigabeVorab, tagesLeitsaetze, verwieseneRegeln, ausgangsschmerz, sprungLimit,
   sprungStatus, sprungAbstand, reduzierteBelastung, fortschrittsGate,
   fortschrittsVorschlag, auswertungVorschlag, umfangFuerWoche2
 } from './logic.js';
@@ -62,7 +62,20 @@ function tagesKopf(tag, i) {
       <button type="button" id="tag-vor" aria-label="Nächster Tag" ${i === PLAN.tage.length - 1 ? 'disabled' : ''}>›</button>
     </div>
     <p class="kopf-zone">Befund: ${zonenMarke(befund.zone, befund.vorlaeufig)}</p>
+    ${tag.herkunft === 'ergaenzt' ? ergaenztHinweis(tag) : ''}
   </section>`;
+}
+
+// Die drei Tage vor dem 21. September stehen nicht im Plandokument. Sie
+// uebernehmen das Wochenmuster und die Texte ihres Vorbildtags, damit schon vor
+// dem eigentlichen Start mitgeschrieben wird. Das wird ausgewiesen, statt es
+// stillschweigend als Plan auszugeben.
+function ergaenztHinweis(tag) {
+  const vorbild = tagFuer(tag.vorbildTag);
+  return `<p class="ergaenzt-hinweis">Ergänzter Tag: steht nicht im Plandokument.
+    Übernimmt Muster und Übungen vom ${esc(datumLang(vorbild.datum))}
+    (${esc(vorbild.wochentag)}, ${esc(TYP_NAME[vorbild.typ])}), damit du schon vor
+    dem 21. September mitschreibst.</p>`;
 }
 
 // --- Block 2: die Antwort ---
@@ -104,9 +117,13 @@ function freigabeBlock(tag) {
 
 function leitsatzBlock(tag) {
   const saetze = tagesLeitsaetze(tag);
+  const verweis = verwieseneRegeln(tag);
   return `<section class="antwort antwort-neutral">
     <p class="eyebrow">Heute gilt</p>
     ${liste(saetze, 'haken')}
+    ${verweis ? `
+      <p class="eyebrow">Die Regeln, auf die dieser Tag verweist — ${esc(verweis.von)}</p>
+      ${liste(verweis.tempo ? [verweis.tempo, ...verweis.saetze] : verweis.saetze, 'haken')}` : ''}
   </section>`;
 }
 

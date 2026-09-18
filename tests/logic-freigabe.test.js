@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PLAN } from '../src/plan-data.js';
 import {
-  leerEintrag, ausgangsschmerz, ausgangsWert, freigabeVorab, tagesLeitsaetze
+  leerEintrag, ausgangsschmerz, ausgangsWert, freigabeVorab, tagesLeitsaetze, verwieseneRegeln
 } from '../src/logic.js';
 
 const tag = (datum) => PLAN.tage.find((t) => t.datum === datum);
@@ -210,5 +210,25 @@ test('Leitsätze sind nie leer und stammen wörtlich aus dem Tag', () => {
     for (const satz of saetze) {
       assert.ok(erlaubt.includes(satz), `${t.datum}: ${satz} stammt nicht aus diesem Tag`);
     }
+  }
+});
+
+// --- Aufgeloester Verweis von Kraft B auf Kraft A ---
+
+test('Kraft B löst den Verweis auf den Donnerstag auf', () => {
+  const r = verwieseneRegeln(tag('2026-09-19'));
+  assert.ok(r, 'Regeln vorhanden');
+  assert.equal(r.von, 'Donnerstag, 24. September: Kraft A');
+  assert.ok(r.saetze.includes('Schmerz höchstens 3 von 10'));
+  assert.ok(r.saetze.includes('nicht bis zum Muskelversagen trainieren'));
+  assert.equal(r.tempo, '3 Sekunden absenken, 1 Sekunde halten, 2 Sekunden hoch');
+});
+
+test('nur Kraft-B-Tage tragen den Verweis', () => {
+  assert.equal(verwieseneRegeln(tag('2026-09-24')), null, 'Kraft A nicht');
+  assert.equal(verwieseneRegeln(tag('2026-09-18')), null, 'Pause nicht');
+  assert.equal(verwieseneRegeln(tag('2026-09-21')), null, 'Volleyball nicht');
+  for (const d of ['2026-09-19', '2026-09-26', '2026-10-03']) {
+    assert.ok(verwieseneRegeln(tag(d)), `${d} trägt den Verweis`);
   }
 });

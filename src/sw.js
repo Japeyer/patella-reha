@@ -4,7 +4,7 @@
 // Bei jeder Änderung an den Dateien die VERSION erhöhen, sonst behalten bereits
 // installierte Geräte den alten Stand.
 
-const VERSION = 'patella-v3';
+const VERSION = 'patella-v4';
 
 const DATEIEN = [
   './',
