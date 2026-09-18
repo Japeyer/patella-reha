@@ -20,7 +20,7 @@ Kontrolltag. Sie übernehmen die Übungen und Bedingungen der entsprechenden
 Wochentage der Woche 1 (25., 26. und 27. September) wörtlich.
 
 **Diese drei Tage stehen nicht im Quelldokument.** Sie tragen das Feld
-, sind in der App als ergänzt ausgewiesen und aus der
+`herkunft: 'ergaenzt'`, sind in der App als ergänzt ausgewiesen und aus der
 Datentreue-Prüfung ausgenommen. Alles, was sie anzeigen, stammt trotzdem
 wörtlich aus dem Dokument.
 
@@ -28,9 +28,10 @@ Fachlich zählen sie voll mit: die Krafteinheit vom Samstag ist die letzte
 Belastung vor dem ersten Volleyball am Montag und geht damit über die
 24-Stunden-Reaktion vom Sonntagmorgen in die Montags-Freigabe ein.
 
-Weil Kraft B nur auf den Donnerstag verweist () und es vor dem 19. September keinen gibt,
-löst die App den Verweis auf und zeigt Tempo und Schmerzgrenze der Kraft-A-
-Einheit direkt an — an jedem Kraft-B-Tag.
+Weil Kraft B nur auf den Donnerstag verweist (`Gleiches Tempo und gleiche
+Schmerzregeln wie am Donnerstag.`) und es vor dem 19. September keinen gibt,
+löst die App den Verweis auf und zeigt Tempo und Schmerzgrenze der
+Kraft-A-Einheit direkt an — an jedem Kraft-B-Tag.
 
 ## Messmethodik
 
