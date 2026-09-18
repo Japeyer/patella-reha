@@ -1,4 +1,6 @@
-# PatellaApp
+# Patella-Reha
+
+**App: https://japeyer.github.io/patella-reha/**
 
 Begleiter für den 2-Wochen-Rehaplan der Patellarsehne, 21. September bis
 4. Oktober 2026.
