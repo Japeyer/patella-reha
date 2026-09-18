@@ -1,0 +1,153 @@
+// Zustand und Datenzugriff. Haelt die Views von Speicher und Kalenderrechnung
+// frei und vermeidet Ringabhaengigkeiten: app.js meldet seine Zeichenfunktion
+// hier an, die Views loesen ueber aktualisiere() neu zeichnen aus.
+
+import { PLAN } from './plan-data.js';
+import { leerEintrag, zoneFuerTag, ausgangsWert } from './logic.js';
+import { erzeugeSpeicher } from './storage.js';
+
+const backend = (() => {
+  try { return globalThis.localStorage ?? null; } catch { return null; }
+})();
+
+export const zustand = {
+  ansicht: 'verlauf',
+  gewaehltesDatum: null,
+  angezeigteWoche: 1,
+  nurMorgen: false,
+  speicher: erzeugeSpeicher(backend),
+  // Nur waehrend der Einheit gebraucht, deshalb nicht gespeichert.
+  letzterSprung: null,
+  letzterAbstand: null,
+  // Welcher Messpunkt aufgeklappt ist; null heisst "der naechste faellige".
+  offenerMesspunkt: null,
+  mehrOffen: false
+};
+
+let zeichner = () => {};
+export function registriereZeichner(fn) { zeichner = fn; }
+export function aktualisiere() { zeichner(); }
+
+const TRAININGSTYPEN = ['volleyball-reduziert', 'volleyball-kontrolliert', 'kraft-a', 'kraft-b'];
+export const istTrainingstag = (tag) => TRAININGSTYPEN.includes(tag.typ);
+
+export const alleEintraege = () => zustand.speicher.lies().eintraege;
+export const tagFuer = (datum) => PLAN.tage.find((t) => t.datum === datum) ?? null;
+// Gegen leerEintrag aufgefuellt, damit ein wiederhergestellter Eintrag aus einer
+// aelteren Sicherung keine fehlenden Felder mitbringt.
+export const eintragFuer = (datum) => ({ ...leerEintrag(datum), ...(alleEintraege()[datum] ?? {}) });
+
+export function heutigerPlantag(heute = new Date()) {
+  const jahr = heute.getFullYear();
+  const monat = String(heute.getMonth() + 1).padStart(2, '0');
+  const tagZahl = String(heute.getDate()).padStart(2, '0');
+  const key = `${jahr}-${monat}-${tagZahl}`;
+  const treffer = tagFuer(key);
+  if (treffer) return treffer;
+  return key < PLAN.zeitraum.von ? PLAN.tage[0] : PLAN.tage[PLAN.tage.length - 1];
+}
+
+export function aktuellesDatum() {
+  return zustand.gewaehltesDatum ?? heutigerPlantag().datum;
+}
+
+// Morgenwert des Folgetags: die 24-Stunden-Reaktion auf die Einheit dieses Tages.
+export function folgeMorgenFuer(datum) {
+  const i = PLAN.tage.findIndex((t) => t.datum === datum);
+  const naechster = PLAN.tage[i + 1];
+  if (!naechster) return null;
+  const e = alleEintraege()[naechster.datum];
+  return ausgangsWert(e?.morgen) == null ? null : e.morgen;
+}
+
+// "Mit dem Zustand am Morgen nach dem vorherigen Training vergleichen"
+// (Quelle Z. 30): sucht das letzte Training vor diesem Tag und nimmt den
+// Morgenwert des Tages danach. deutlichSchlechter meldet eine Verschlechterung
+// um 2 oder mehr Punkte gegenueber dem Morgen des Trainingstags selbst.
+export function vergleichMorgenFuer(datum) {
+  const eintraege = alleEintraege();
+  const i = PLAN.tage.findIndex((t) => t.datum === datum);
+  for (let k = i - 1; k >= 0; k -= 1) {
+    const training = PLAN.tage[k];
+    if (!istTrainingstag(training)) continue;
+    const danach = PLAN.tage[k + 1];
+    const morgenDanach = danach ? eintraege[danach.datum]?.morgen : null;
+    const wertDanach = ausgangsWert(morgenDanach);
+    if (wertDanach == null) return null;
+    const morgenDesTrainings = ausgangsWert(eintraege[training.datum]?.morgen);
+    const deutlichSchlechter = morgenDesTrainings != null
+      && wertDanach - morgenDesTrainings >= 2;
+    return { ...morgenDanach, deutlichSchlechter, quelle: danach.datum };
+  }
+  return null;
+}
+
+// Schreibt einen Teilwert. pfad ist "morgen.ruhe", "vor.hinken", "spruenge", ...
+export function setzeWert(datum, pfad, wert) {
+  const schluessel = pfad.split('.');
+  const teil = schluessel.reverse().reduce((innen, k) => ({ [k]: innen }), wert);
+  zustand.speicher.setzeEintrag(datum, teil);
+  aktualisiere();
+}
+
+export function schalteUebung(datum, name) {
+  const vorhanden = eintragFuer(datum).uebungenAbgehakt;
+  const neu = vorhanden.includes(name)
+    ? vorhanden.filter((n) => n !== name)
+    : [...vorhanden, name];
+  zustand.speicher.setzeEintrag(datum, { uebungenAbgehakt: neu });
+  aktualisiere();
+}
+
+export function fortschrittAntworten() {
+  return zustand.speicher.lies().fortschritt ?? [null, null, null, null];
+}
+
+export function setzeFortschritt(index, wert) {
+  const alt = fortschrittAntworten();
+  const neu = alt.map((w, i) => (i === index ? wert : w));
+  const z = zustand.speicher.lies();
+  zustand.speicher.schreib({ ...z, fortschritt: neu });
+  aktualisiere();
+}
+
+export function auswertungWerte() {
+  return zustand.speicher.lies().auswertung ?? {};
+}
+
+export function setzeAuswertung(feld, wert) {
+  const z = zustand.speicher.lies();
+  zustand.speicher.schreib({ ...z, auswertung: { ...(z.auswertung ?? {}), [feld]: wert } });
+  aktualisiere();
+}
+
+// Zone der letzten Einheit vor diesem Tag. Sie entscheidet mit darueber, was
+// heute erlaubt ist: rot sperrt Spruenge, gelb reduziert sie um 20 bis 30 Prozent.
+export function letzteTrainingsZone(datum) {
+  const i = PLAN.tage.findIndex((t) => t.datum === datum);
+  for (let k = i - 1; k >= 0; k -= 1) {
+    const training = PLAN.tage[k];
+    if (!istTrainingstag(training)) continue;
+    const befund = zoneFuerTag(eintragFuer(training.datum), folgeMorgenFuer(training.datum));
+    return befund.zone === 'offen' ? null : befund.zone;
+  }
+  return null;
+}
+
+export function oeffneMesspunkt(schluessel) {
+  zustand.offenerMesspunkt = schluessel;
+  aktualisiere();
+}
+
+export function wechsleAnsicht(name) {
+  zustand.ansicht = name;
+  aktualisiere();
+}
+
+export function setzeDatum(datum) {
+  zustand.gewaehltesDatum = datum;
+  zustand.letzterSprung = null;
+  zustand.letzterAbstand = null;
+  zustand.offenerMesspunkt = null;
+  wechsleAnsicht('heute');
+}

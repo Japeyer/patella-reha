@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Patellarsehne Reha-Tracker</title>
+<meta name="description" content="Schmerztracking und Volleyball-Freigabe für den 2-Wochen-Rehaplan der Patellarsehne.">
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+
+<!-- Zum Startbildschirm hinzufügen -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Patella">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main id="inhalt" tabindex="-1"></main>
+
+<p class="speicher-hinweis" id="hinweis-speicher" hidden></p>
+
+<footer class="fuss">
+  <button type="button" class="fuss-knopf" id="knopf-warnzeichen" aria-haspopup="dialog">
+    Warnzeichen
+  </button>
+  <button type="button" class="fuss-knopf" id="knopf-sicherung" aria-haspopup="dialog">
+    Daten sichern
+  </button>
+  <p class="abgrenzung">
+    Protokoll zum selbst erstellten Plan. Ersetzt keine physiotherapeutische
+    oder ärztliche Beurteilung.
+  </p>
+</footer>
+
+<nav class="nav" id="nav" aria-label="Ansichten">
+  <button type="button" data-ansicht="heute" aria-current="page">
+    <span class="nav-zeichen" aria-hidden="true">●</span>Heute
+  </button>
+  <button type="button" data-ansicht="verlauf">
+    <span class="nav-zeichen" aria-hidden="true">◠</span>Verlauf
+  </button>
+  <button type="button" data-ansicht="plan">
+    <span class="nav-zeichen" aria-hidden="true">≡</span>Plan
+  </button>
+</nav>
+
+<dialog id="dialog-sicherung" aria-label="Daten sichern oder wiederherstellen"></dialog>
+<dialog id="dialog-warnzeichen" aria-label="Warnzeichen"></dialog>
+
+<script type="module" src="app.js"></script>
+<script>
+  // Offline nutzbar machen. Scheitert die Registrierung, läuft die App
+  // unverändert weiter - nur eben nur mit Netz.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+
+  // Macht ein fehlgeschlagenes Laden sichtbar, statt eine leere Seite zu zeigen.
+  setTimeout(function () {
+    var inhalt = document.getElementById('inhalt');
+    if (inhalt && inhalt.children.length === 0) {
+      inhalt.innerHTML = '<section class="abschnitt">'
+        + '<h2>Die App konnte nicht geladen werden</h2>'
+        + '<p>Die Seite hat ihre Programmdateien nicht erhalten. Bitte die Seite'
+        + ' neu laden. Wenn es weiterhin nicht geht, melde es mit dieser Meldung.</p>'
+        + '</section>';
+    }
+  }, 2500);
+</script>
+
+</body>
+</html>
