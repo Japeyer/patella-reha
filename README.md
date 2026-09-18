@@ -66,7 +66,7 @@ Vollbild und läuft auch ohne Netz.
 
 Offline sorgt `src/sw.js` dafür, dass alle Dateien auf dem Gerät liegen — in
 der Halle ist der Empfang oft schlecht, und die Freigabe muss trotzdem da sein.
-**Nach jeder Änderung an den Dateien die `VERSION` in `src/sw.js` erhöhen`,
+**Nach jeder Änderung an den Dateien die `VERSION` in `src/sw.js` erhöhen,
 sonst behalten bereits installierte Geräte den alten Stand.
 
 Die Schmerzdaten liegen im `localStorage` und damit an der Adresse, unter der
