@@ -1,11 +1,10 @@
-// Die 14-Tage-Leiste: ein Streifen pro Plantag mit Ampelfarbe, Kürzel und
-// Zeichen. Der Plan ist genau zwei Wochen lang, deshalb ersetzt dieser Streifen
-// eine Wochen- und eine Monatsansicht vollständig.
+// Die Tagesleiste: ein Feld pro Plantag mit Ampelfarbe, Kürzel und Zeichen,
+// gruppiert nach Wochen. Wächst mit, wenn Wochen angefügt oder angepasst werden.
 
-import { PLAN } from './plan-data.js';
 import { zoneFuerTag } from './logic.js';
-import { eintragFuer, folgeMorgenFuer, setzeDatum, heutigerPlantag } from './state.js';
+import { eintragFuer, folgeMorgenFuer, setzeDatum, heutigerPlantag, wochen } from './state.js';
 import { esc, TYP_KUERZEL, ZONEN_ZEICHEN, ZONEN_NAME, TYP_NAME } from './ui.js';
+import { wochentagIndex, wochentagVon } from './datum.js';
 
 export function tagesZone(datum) {
   return zoneFuerTag(eintragFuer(datum), folgeMorgenFuer(datum));
@@ -16,44 +15,58 @@ const WOCHENTAG_KUERZEL = {
   Freitag: 'Fr', Samstag: 'Sa', Sonntag: 'So'
 };
 
-const WOCHENTAG_SPALTE = {
-  Montag: 0, Dienstag: 1, Mittwoch: 2, Donnerstag: 3,
-  Freitag: 4, Samstag: 5, Sonntag: 6
-};
+function wochenTitel(woche) {
+  if (woche.woche === 0) return 'Vorlauf ab Freitag, 18. September';
+  if (woche.woche === 1) return 'Woche 1: Belastung beruhigen und Kraft einführen';
+  if (woche.woche === 2) return 'Woche 2: Vorsichtige Progression';
+  return `Woche ${woche.woche}`;
+}
 
 export function tagesLeisteMarkup() {
   const heute = heutigerPlantag().datum;
-  const wochen = PLAN.wochen.map((woche) => {
-    const tage = PLAN.tage.filter((t) => t.woche === woche.nummer);
-    // Eine angebrochene Woche - der Vorlauf beginnt an einem Freitag - wird auf
-    // ihre Wochentagsspalten geschoben, damit die Leiste als Kalender lesbar bleibt.
-    const versatz = WOCHENTAG_SPALTE[tage[0].wochentag];
+
+  const bloecke = wochen().map((woche) => {
+    // Eine angebrochene Woche wird auf ihre Wochentagsspalten geschoben, damit
+    // die Leiste als Kalender lesbar bleibt.
+    const versatz = wochentagIndex(woche.tage[0].datum);
     const leer = Array.from({ length: versatz },
       () => '<div class="leiste-feld leer" aria-hidden="true"></div>').join('');
-    const felder = leer + tage.map((tag) => {
+
+    const felder = woche.tage.map((tag) => {
       const befund = tagesZone(tag.datum);
       const istHeute = tag.datum === heute;
+      const kuerzel = WOCHENTAG_KUERZEL[wochentagVon(tag.datum)];
       return `<button type="button" class="leiste-feld zone-feld-${befund.zone}${istHeute ? ' heute' : ''}"
         data-datum="${tag.datum}"
         title="${esc(tag.titel)} — ${ZONEN_NAME[befund.zone]}"
-        aria-label="${esc(WOCHENTAG_KUERZEL[tag.wochentag])} ${esc(tag.datum.slice(8))}., ${esc(TYP_NAME[tag.typ])}, ${ZONEN_NAME[befund.zone]}">
-        <span class="leiste-wochentag">${WOCHENTAG_KUERZEL[tag.wochentag]}</span>
+        aria-label="${kuerzel} ${Number(tag.datum.slice(8))}., ${esc(TYP_NAME[tag.typ] ?? tag.typ)}, ${ZONEN_NAME[befund.zone]}">
+        <span class="leiste-wochentag">${kuerzel}</span>
         <span class="leiste-tag">${Number(tag.datum.slice(8))}.</span>
-        <span class="leiste-kuerzel">${TYP_KUERZEL[tag.typ]}</span>
+        <span class="leiste-kuerzel">${TYP_KUERZEL[tag.typ] ?? '?'}</span>
         <span class="leiste-zeichen" aria-hidden="true">${ZONEN_ZEICHEN[befund.zone]}</span>
       </button>`;
     }).join('');
+
+    const marken = [];
+    if (woche.woche === 0) marken.push('ergänzt');
+    if (woche.angepasst) marken.push('angepasst');
+
     return `<div class="leiste-woche">
-      <p class="eyebrow">${esc(woche.titel)}${woche.ergaenzt ? ' · ergänzt' : ''}</p>
-      <div class="leiste">${felder}</div>
+      <button type="button" class="leiste-kopf" data-woche="${woche.montag}">
+        <span class="eyebrow">${esc(wochenTitel(woche))}${marken.length ? ` · ${marken.join(' · ')}` : ''}</span>
+        <span class="leiste-kopf-pfeil" aria-hidden="true">anpassen ›</span>
+      </button>
+      <div class="leiste">${leer}${felder}</div>
+      ${woche.hinweise.map((h) => `<p class="leiste-hinweis">${esc(h)}</p>`).join('')}
     </div>`;
   }).join('');
 
   return `<section class="abschnitt">
     <h2>Alle Tage</h2>
-    ${wochen}
+    ${bloecke}
     <ul class="leiste-legende">
       <li>VB Volleyball</li>
+      <li>MA Match</li>
       <li>KA Kraft A</li>
       <li>KB Kraft B</li>
       <li>Reg Pause</li>
@@ -66,12 +79,15 @@ export function tagesLeisteMarkup() {
       <li>${ZONEN_ZEICHEN.rot} rot</li>
       <li>${ZONEN_ZEICHEN.offen} kein Eintrag</li>
     </ul>
-    <p class="leise">Tippen öffnet den Tag.</p>
+    <p class="leise">Tippen öffnet den Tag, der Wochentitel öffnet die Wochenplanung.</p>
   </section>`;
 }
 
-export function bindeLeiste(ziel) {
+export function bindeLeiste(ziel, beiWoche) {
   ziel.querySelectorAll('.leiste-feld[data-datum]').forEach((feld) => {
     feld.addEventListener('click', () => setzeDatum(feld.dataset.datum));
+  });
+  ziel.querySelectorAll('.leiste-kopf[data-woche]').forEach((kopf) => {
+    kopf.addEventListener('click', () => beiWoche?.(kopf.dataset.woche));
   });
 }

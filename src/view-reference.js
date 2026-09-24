@@ -2,6 +2,12 @@
 
 import { PLAN } from './plan-data.js';
 import { esc, liste } from './ui.js';
+import { zustand, schliesseWoche, oeffneWoche } from './state.js';
+import {
+  wochenEditorMarkup, bindeWochenEditor, wocheAnfuegenMarkup, bindeWocheAnfuegen
+} from './view-woche.js';
+import { wochen } from './state.js';
+import { datumLang } from './datum.js';
 
 const zonenkarte = (schluessel, zone) => `<div class="zonenkarte zonenkarte-${schluessel}">
   <h4>${esc(zone.name)}</h4>
@@ -9,8 +15,29 @@ const zonenkarte = (schluessel, zone) => `<div class="zonenkarte zonenkarte-${sc
   <p class="konsequenz">${esc(zone.konsequenz)}</p>
 </div>`;
 
+function wochenUebersichtMarkup() {
+  const liste = wochen().map((w) => `<button type="button" class="wochenzeile" data-woche="${w.montag}">
+      <span class="wochenzeile-name">Woche ${w.woche}${w.angepasst ? ' · angepasst' : ''}</span>
+      <span class="wochenzeile-datum">ab ${esc(datumLang(w.montag))}</span>
+    </button>`).join('');
+  return `<section class="abschnitt">
+    <h2>Wochenplanung</h2>
+    <p class="leise">Verschiebt sich ein Training wegen eines Matches oder einer
+      geänderten Hallenzeit, setze hier die Volleyballtage neu — Kraft und
+      Regeneration ordnen sich an.</p>
+    ${liste}
+  </section>`;
+}
+
 export function zeichnePlan(ziel) {
-  ziel.innerHTML = `
+  // Ist eine Woche offen, tritt der Editor an die Stelle des Nachschlagewerks.
+  if (zustand.offeneWoche) {
+    ziel.innerHTML = wochenEditorMarkup(zustand.offeneWoche);
+    bindeWochenEditor(ziel, zustand.offeneWoche, schliesseWoche);
+    return;
+  }
+
+  ziel.innerHTML = `${wochenUebersichtMarkup()}${wocheAnfuegenMarkup()}` + `
     <section class="abschnitt">
       <h2>${esc(PLAN.titel)}</h2>
       <p class="leise">${esc(PLAN.zeitraum.text)}</p>
@@ -66,6 +93,11 @@ export function zeichnePlan(ziel) {
       </details>
     </section>
   `;
+
+  ziel.querySelectorAll('.wochenzeile[data-woche]').forEach((zeile) => {
+    zeile.addEventListener('click', () => oeffneWoche(zeile.dataset.woche));
+  });
+  bindeWocheAnfuegen(ziel, (montag) => oeffneWoche(montag));
 }
 
 export function warnzeichenInhalt() {

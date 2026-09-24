@@ -68,6 +68,11 @@ await import('../src/app.js');
 const { zeichneHeute } = await import('../src/view-today.js');
 const { tagesLeisteMarkup, bindeLeiste } = await import('../src/view-overview.js');
 const { zeichnePlan, warnzeichenInhalt } = await import('../src/view-reference.js');
+const { wochenEditorMarkup, wocheAnfuegenMarkup } = await import('../src/view-woche.js');
+const { setzeWoche, wocheAnfuegen, oeffneWoche, schliesseWoche, tage: planTage } =
+  await import('../src/state.js');
+const { ROLLE } = await import('../src/schedule.js');
+const { wochenTage } = await import('../src/datum.js');
 
 const pruefe = (bezeichnung, fn) => {
   try {
@@ -142,6 +147,57 @@ setzeFortschritt(1, false);
 merke(pruefe('Montag 28.9. ohne Freigabe', () => zeichneHeute(element(), '2026-09-28')));
 merke(pruefe('Mittwoch 30.9. ohne Freigabe', () => zeichneHeute(element(), '2026-09-30')));
 merke(pruefe('Auswertungstag 4.10.', () => zeichneHeute(element(), '2026-10-04')));
+
+console.log('');
+console.log('Wochenplanung:');
+merke(pruefe('Editor für jede vorhandene Woche', () => {
+  for (const montag of ['2026-09-21', '2026-09-28']) {
+    const markup = wochenEditorMarkup(montag);
+    if (!markup.includes('wtag-schalter')) throw new Error(montag + ': keine Schalter');
+    if (markup.includes('undefined')) throw new Error(montag + ': undefined im Markup');
+    schliesseWoche();
+  }
+}));
+
+merke(pruefe('Knopf zum Anfügen einer Woche', () => {
+  if (!wocheAnfuegenMarkup().includes('woche-anfuegen')) throw new Error('kein Knopf');
+}));
+
+const vorherTage = planTage().length;
+const neueWoche = wocheAnfuegen();
+merke(pruefe('angefügte Woche erweitert den Plan um sieben Tage', () => {
+  if (planTage().length !== vorherTage + 7) throw new Error('nicht sieben Tage mehr');
+  if (neueWoche !== '2026-10-05') throw new Error('falscher Montag: ' + neueWoche);
+}));
+
+merke(pruefe('jeder Tag der angefügten Woche zeichnet', () => {
+  for (const tag of planTage().filter((t) => t.datum >= '2026-10-05')) {
+    zeichneHeute(element(), tag.datum);
+  }
+}));
+
+const w3 = wochenTage('2026-10-05');
+setzeWoche('2026-10-05', { [w3[1]]: ROLLE.volleyball, [w3[5]]: ROLLE.match });
+merke(pruefe('verschobene Woche enthält das Match am richtigen Tag', () => {
+  const match = planTage().find((t) => t.typ === 'match');
+  if (!match) throw new Error('kein Match im Plan');
+  if (match.datum !== w3[5]) throw new Error('Match am falschen Tag: ' + match.datum);
+  zeichneHeute(element(), match.datum);
+}));
+
+merke(pruefe('Tagesleiste weist die Anpassung aus', () => {
+  const markup = tagesLeisteMarkup();
+  if (!markup.includes('angepasst')) throw new Error('Anpassung nicht ausgewiesen');
+  const felder = (markup.match(/data-datum="/g) ?? []).length;
+  if (felder !== planTage().length) throw new Error('Feldzahl ' + felder);
+}));
+
+merke(pruefe('Planansicht mit offener und geschlossener Woche', () => {
+  oeffneWoche('2026-10-05');
+  zeichnePlan(element());
+  schliesseWoche();
+  zeichnePlan(element());
+}));
 
 console.log('\nSicherung:');
 merke(pruefe('Text erzeugen und wieder einlesen', () => {

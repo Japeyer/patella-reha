@@ -4,7 +4,7 @@
 // Bei jeder Änderung an den Dateien die VERSION erhöhen, sonst behalten bereits
 // installierte Geräte den alten Stand.
 
-const VERSION = 'patella-v4';
+const VERSION = 'patella-v5';
 
 const DATEIEN = [
   './',
@@ -20,6 +20,11 @@ const DATEIEN = [
   './view-today.js',
   './view-overview.js',
   './view-reference.js',
+  './view-woche.js',
+  './datum.js',
+  './schedule.js',
+  './kalender.js',
+  './vorlagen.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',

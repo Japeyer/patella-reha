@@ -263,7 +263,7 @@ export function tagesLeitsaetze(tag) {
 // Donnerstag gab.
 export function verwieseneRegeln(tag) {
   if (tag.typ !== 'kraft-b') return null;
-  const kraftA = PLAN.tage.find((t) => t.typ === 'kraft-a' && t.herkunft !== 'ergaenzt');
+  const kraftA = PLAN.tage.find((t) => t.typ === 'kraft-a' && t.woche === 1);
   if (!kraftA) return null;
   const belastung = kraftA.bloecke.find((b) => b.titel === 'Belastung');
   const hauptteil = kraftA.bloecke.find((b) => b.titel === 'Hauptteil');

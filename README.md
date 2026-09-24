@@ -11,6 +11,53 @@ nächster fällig. Alles Weitere — Übungen, Sprungzähler, Befundbegründung,
 Fortschritts-Gate, Auswertungsbogen — liegt unter "Mehr zum Tag" eine Ebene
 tiefer. Drei Ansichten: Heute, Verlauf, Plan.
 
+## Wochen anpassen
+
+Verschiebt sich ein Training wegen eines Matches oder einer geänderten
+Hallenzeit, werden unter *Plan* die Volleyballtage der Woche neu gesetzt. Kraft,
+Regeneration und Kontrolltag ordnen sich daraufhin selbst an.
+
+Die Verteilungsregeln sind nicht erfunden, sondern die Wochenstruktur des
+Plandokuments ausgeschrieben — Mo Volleyball, Di Regeneration, Mi Volleyball,
+Do Kraft A, Fr Regeneration, Sa Kraft B, So Kontrolltag:
+
+| Regel | Woher aus dem Plan |
+|---|---|
+| Vor einem Volleyballtag liegt kein Belastungstag | Mo←So, Mi←Di |
+| Zwei Krafttage, mindestens 48 Stunden auseinander | Do→Sa |
+| Höchstens zwei Belastungstage hintereinander | Mi+Do |
+| Der letzte freie Tag der Woche ist Kontrolltag | So |
+
+Bevorzugt, aber nicht erzwungen: ein Krafttag direkt nach einem Volleyballtag
+(Mi→Do) und möglichst grosser Abstand zwischen den Krafttagen.
+
+Geht eine Kombination nicht auf — drei Volleyballtage lassen etwa keine zwei
+Krafttage mehr zu —, **rät der Rechner nicht, sondern lockert eine benannte
+Regel und meldet welche**. Bei Gleichstand bleiben die beiden Krafttage
+erhalten: progressive Sehnenbelastung ist die Behandlung, eine Einheit zu
+streichen wäre der grössere Verlust als sie ungünstig zu legen.
+
+Ein **Match** ist ein eigener Einheitstyp mit denselben Sprungvorgaben wie ein
+Training. Das Dokument nennt für Matches keine eigenen Zahlen, also werden auch
+keine erfunden.
+
+### Treue zum Dokument bleibt erhalten
+
+Solange eine Woche nicht angepasst wurde, kommen ihre Tage unverändert aus
+`PLAN.tage`. Ein Test prüft Feld für Feld, dass der Kalender ohne gespeicherten
+Wochenplan exakt die dokumentierten Tage ergibt. Erst eine Anpassung schaltet
+auf den Rechner um; gerechnete Tage tragen `herkunft: 'gerechnet'` und nennen
+in der App den dokumentierten Tag, von dem ihr Inhalt stammt.
+
+### Wochen anfügen
+
+Ein Knopf verlängert den Plan über den 4. Oktober hinaus. Angefügte Wochen
+übernehmen die Umfänge der Woche 2 unverändert — 15 bis 25 Sprünge, 70 bis 80
+Prozent Trainingsdauer. **Die App steigert nichts von selbst**; das Dokument
+endet am 4. Oktober und nennt für die Zeit danach keine Zahlen. Es sieht
+stattdessen vor, bei ungünstiger Entwicklung Diagnose und Belastungsplanung
+sportmedizinisch überprüfen zu lassen.
+
 ## Vorlauf vor dem Planbeginn
 
 Der Plan startet am Montag, 21. September. Damit schon vorher mitgeschrieben
@@ -151,7 +198,12 @@ dass nichts behalten wird.
 | `src/ui.js` | Geteilte Anzeigebausteine |
 | `src/view-today.js` | Ansicht „Heute" — Tagesart, Freigabe, Erfassung, „Mehr zum Tag" |
 | `src/view-overview.js` | Die 14-Tage-Leiste |
-| `src/view-reference.js` | Nachschlagewerk und Warnzeichen |
+| `src/view-reference.js` | Nachschlagewerk, Wochenübersicht |
+| `src/view-woche.js` | Wochenplanung: Volleyballtage setzen, Vorschau |
+| `src/datum.js` | Datums- und Wochenrechnung |
+| `src/schedule.js` | Verteilt Kraft, Regeneration und Kontrolltag |
+| `src/kalender.js` | Dokumenttage plus Anpassungen zum effektiven Kalender |
+| `src/vorlagen.js` | Welcher dokumentierte Tag liefert welche Rolle |
 | `src/app.js` | Verlaufsansicht, Navigation, Dialoge |
 | `src/index.html` | Vollständiges Dokument mit Manifest- und Icon-Verweisen |
 | `src/manifest.webmanifest` | Name, Icons, Vollbildstart |
@@ -162,7 +214,7 @@ dass nichts behalten wird.
 ## Prüfen
 
 ```
-node --test                    # 106 Tests: Datentreue, Ausgangsschmerz, Zonen, Gates, Freigabe, Speicher, Diagramm
+node --test                    # 137 Tests: Datentreue, Ausgangsschmerz, Zonen, Gates, Freigabe, Speicher, Diagramm
 node tools/vollstaendigkeit.mjs  # prüft, dass jede Quellzeile übernommen ist
 node tools/smoke.mjs             # führt alle Ansichten ohne Browser aus
 ```

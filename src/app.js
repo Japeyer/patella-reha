@@ -5,7 +5,7 @@ import { PLAN } from './plan-data.js';
 import { REIHEN, reihenDaten, svgVerlauf } from './chart.js';
 import {
   zustand, registriereZeichner, aktualisiere, alleEintraege,
-  aktuellesDatum, setzeDatum, wechsleAnsicht
+  aktuellesDatum, setzeDatum, wechsleAnsicht, tage, oeffneWoche
 } from './state.js';
 import { zeichneHeute } from './view-today.js';
 import { tagesLeisteMarkup, bindeLeiste } from './view-overview.js';
@@ -13,16 +13,17 @@ import { zeichnePlan, warnzeichenInhalt } from './view-reference.js';
 import { esc } from './ui.js';
 
 function zeichneVerlauf(ziel) {
-  const daten = reihenDaten(alleEintraege(), PLAN.tage);
+  const planTage = tage();
+  const daten = reihenDaten(alleEintraege(), planTage);
   const erfasst = daten.reduce((summe, r) => summe + r.punkte.filter((p) => p.wert !== null).length, 0);
   const sichtbar = zustand.nurMorgen ? REIHEN.slice(0, 1) : REIHEN;
 
   ziel.innerHTML = `
     <section class="abschnitt">
-      <h2>Morgenschmerz über die zwei Wochen</h2>
+      <h2>Morgenschmerz über ${planTage.length} Tage</h2>
       <p class="leise">Der höhere Wert aus Ruhe und Treppenabwärtsgehen. Diese Reihe
         zeigt am deutlichsten, ob es besser oder schlechter wird.</p>
-      <div class="diagramm">${svgVerlauf(daten, PLAN.tage, { breite: 360, hoehe: 200, nurMorgen: zustand.nurMorgen })}</div>
+      <div class="diagramm">${svgVerlauf(daten, planTage, { breite: 360, hoehe: 200, nurMorgen: zustand.nurMorgen })}</div>
       ${zustand.nurMorgen ? '' : `<ul class="legende">
         ${sichtbar.map((r) => `<li class="legende-${r.schluessel}">${esc(r.name)}</li>`).join('')}
       </ul>`}
@@ -42,7 +43,7 @@ function zeichneVerlauf(ziel) {
   ziel.querySelectorAll('circle[data-datum]').forEach((punkt) => {
     punkt.addEventListener('click', () => setzeDatum(punkt.dataset.datum));
   });
-  bindeLeiste(ziel);
+  bindeLeiste(ziel, oeffneWoche);
 }
 
 const ANSICHTEN = {

@@ -15,7 +15,7 @@ import {
   zustand, alleEintraege, eintragFuer, tagFuer, folgeMorgenFuer, vergleichMorgenFuer,
   letzteTrainingsZone, setzeWert, schalteUebung, istTrainingstag, setzeDatum,
   oeffneMesspunkt, fortschrittAntworten, setzeFortschritt, auswertungWerte,
-  setzeAuswertung, heutigerPlantag
+  setzeAuswertung, heutigerPlantag, tage
 } from './state.js';
 import {
   esc, schmerzFeld, jaNeinFeld, uebungZeile, zonenMarke, liste,
@@ -26,8 +26,9 @@ const KONTROLLTAG = '2026-09-27';
 const AUSWERTUNGSTAG = '2026-10-04';
 
 function naechsteEinheit(datum) {
-  const i = PLAN.tage.findIndex((t) => t.datum === datum);
-  return PLAN.tage.slice(i + 1).find(istTrainingstag) ?? null;
+  const liste = tage();
+  const i = liste.findIndex((t) => t.datum === datum);
+  return liste.slice(i + 1).find(istTrainingstag) ?? null;
 }
 
 const woche2Freigabe = () => fortschrittsGate(fortschrittAntworten()).freigegeben;
@@ -59,10 +60,10 @@ function tagesKopf(tag, i) {
         <p class="tagesart">${esc(TYP_GROSS[tag.typ])}</p>
         <p class="tagesart-zusatz">${esc(TYP_NAME[tag.typ])} · Woche ${tag.woche}</p>
       </div>
-      <button type="button" id="tag-vor" aria-label="Nächster Tag" ${i === PLAN.tage.length - 1 ? 'disabled' : ''}>›</button>
+      <button type="button" id="tag-vor" aria-label="Nächster Tag" ${i === tage().length - 1 ? 'disabled' : ''}>›</button>
     </div>
     <p class="kopf-zone">Befund: ${zonenMarke(befund.zone, befund.vorlaeufig)}</p>
-    ${tag.herkunft === 'ergaenzt' ? ergaenztHinweis(tag) : ''}
+    ${herkunftHinweis(tag)}
   </section>`;
 }
 
@@ -72,10 +73,27 @@ function tagesKopf(tag, i) {
 // stillschweigend als Plan auszugeben.
 function ergaenztHinweis(tag) {
   const vorbild = tagFuer(tag.vorbildTag);
+  if (!vorbild) return '';
   return `<p class="ergaenzt-hinweis">Ergänzter Tag: steht nicht im Plandokument.
     Übernimmt Muster und Übungen vom ${esc(datumLang(vorbild.datum))}
     (${esc(vorbild.wochentag)}, ${esc(TYP_NAME[vorbild.typ])}), damit du schon vor
     dem 21. September mitschreibst.</p>`;
+}
+
+// Ein gerechneter Tag entsteht, weil die Woche angepasst wurde. Sein Inhalt ist
+// die Kopie eines dokumentierten Tages - das steht dran.
+function gerechnetHinweis(tag) {
+  const vorlage = PLAN.tage.find((t) => t.datum === tag.vorlageVon);
+  if (!vorlage) return '';
+  return `<p class="ergaenzt-hinweis">Gerechneter Tag: diese Woche wurde angepasst.
+    Übungen und Grenzen stammen unverändert vom ${esc(datumLang(vorlage.datum))}
+    (${esc(vorlage.wochentag)}, ${esc(TYP_NAME[vorlage.typ])}).</p>`;
+}
+
+function herkunftHinweis(tag) {
+  if (tag.herkunft === 'ergaenzt') return ergaenztHinweis(tag);
+  if (tag.herkunft === 'gerechnet') return gerechnetHinweis(tag);
+  return '';
 }
 
 // --- Block 2: die Antwort ---
@@ -358,8 +376,9 @@ function mehrZumTag(tag) {
 // --- Zusammenbau ---
 
 export function zeichneHeute(ziel, datum) {
-  const tag = tagFuer(datum) ?? PLAN.tage[0];
-  const i = PLAN.tage.findIndex((t) => t.datum === tag.datum);
+  const liste = tage();
+  const tag = tagFuer(datum) ?? liste[0];
+  const i = liste.findIndex((t) => t.datum === tag.datum);
 
   ziel.innerHTML = `
     ${tagesKopf(tag, i)}
@@ -368,8 +387,8 @@ export function zeichneHeute(ziel, datum) {
     ${mehrZumTag(tag)}
   `;
 
-  ziel.querySelector('#tag-zurueck')?.addEventListener('click', () => setzeDatum(PLAN.tage[i - 1].datum));
-  ziel.querySelector('#tag-vor')?.addEventListener('click', () => setzeDatum(PLAN.tage[i + 1].datum));
+  ziel.querySelector('#tag-zurueck')?.addEventListener('click', () => setzeDatum(liste[i - 1].datum));
+  ziel.querySelector('#tag-vor')?.addEventListener('click', () => setzeDatum(liste[i + 1].datum));
   ziel.querySelector('#zum-morgen')?.addEventListener('click', () => oeffneMesspunkt('morgen'));
 
   ziel.addEventListener('click', (ereignis) => {

@@ -10,6 +10,7 @@ export const esc = (wert) => String(wert ?? '')
 export const TYP_NAME = {
   'volleyball-reduziert': 'Volleyball reduziert',
   'volleyball-kontrolliert': 'Volleyball kontrolliert',
+  match: 'Match',
   'kraft-a': 'Kraft A',
   'kraft-b': 'Kraft B',
   regeneration: 'Regeneration',
@@ -22,6 +23,7 @@ export const TYP_NAME = {
 export const TYP_GROSS = {
   'volleyball-reduziert': 'Volleyball',
   'volleyball-kontrolliert': 'Volleyball',
+  match: 'Match',
   'kraft-a': 'Kraft A',
   'kraft-b': 'Kraft B',
   regeneration: 'Pause',
@@ -32,6 +34,7 @@ export const TYP_GROSS = {
 export const TYP_KUERZEL = {
   'volleyball-reduziert': 'VB',
   'volleyball-kontrolliert': 'VB',
+  match: 'MA',
   'kraft-a': 'KA',
   'kraft-b': 'KB',
   regeneration: 'Reg',

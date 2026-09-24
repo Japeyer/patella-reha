@@ -5,6 +5,10 @@
 import { PLAN } from './plan-data.js';
 import { leerEintrag, zoneFuerTag, ausgangsWert } from './logic.js';
 import { erzeugeSpeicher } from './storage.js';
+import {
+  effektiveTage, effektiveWochen, belastungenDerWoche, naechsteWoche, istAngepasst
+} from './kalender.js';
+import { montagDerWoche } from './datum.js';
 
 const backend = (() => {
   try { return globalThis.localStorage ?? null; } catch { return null; }
@@ -21,18 +25,30 @@ export const zustand = {
   letzterAbstand: null,
   // Welcher Messpunkt aufgeklappt ist; null heisst "der naechste faellige".
   offenerMesspunkt: null,
-  mehrOffen: false
+  mehrOffen: false,
+  // Wochenplanung: welche Woche offen ist und der noch nicht uebernommene Entwurf.
+  offeneWoche: null,
+  wochenEntwurf: null
 };
 
 let zeichner = () => {};
 export function registriereZeichner(fn) { zeichner = fn; }
 export function aktualisiere() { zeichner(); }
 
-const TRAININGSTYPEN = ['volleyball-reduziert', 'volleyball-kontrolliert', 'kraft-a', 'kraft-b'];
+const TRAININGSTYPEN = ['volleyball-reduziert', 'volleyball-kontrolliert', 'match', 'kraft-a', 'kraft-b'];
 export const istTrainingstag = (tag) => TRAININGSTYPEN.includes(tag.typ);
 
 export const alleEintraege = () => zustand.speicher.lies().eintraege;
-export const tagFuer = (datum) => PLAN.tage.find((t) => t.datum === datum) ?? null;
+
+// Der gespeicherte Wochenplan. Leer heisst: alles wie im Dokument.
+export const wochenplan = () => zustand.speicher.lies().wochenplan ?? {};
+
+// Die Tage, die die App fuehrt. Ohne Anpassung sind das genau PLAN.tage.
+// Wird bei jedem Zeichnen neu gerechnet; die Wochenplanung ist billig.
+export const tage = () => effektiveTage(wochenplan());
+export const wochen = () => effektiveWochen(wochenplan());
+
+export const tagFuer = (datum) => tage().find((t) => t.datum === datum) ?? null;
 // Gegen leerEintrag aufgefuellt, damit ein wiederhergestellter Eintrag aus einer
 // aelteren Sicherung keine fehlenden Felder mitbringt.
 export const eintragFuer = (datum) => ({ ...leerEintrag(datum), ...(alleEintraege()[datum] ?? {}) });
@@ -44,7 +60,8 @@ export function heutigerPlantag(heute = new Date()) {
   const key = `${jahr}-${monat}-${tagZahl}`;
   const treffer = tagFuer(key);
   if (treffer) return treffer;
-  return key < PLAN.zeitraum.von ? PLAN.tage[0] : PLAN.tage[PLAN.tage.length - 1];
+  const liste = tage();
+  return key < liste[0].datum ? liste[0] : liste[liste.length - 1];
 }
 
 export function aktuellesDatum() {
@@ -53,8 +70,9 @@ export function aktuellesDatum() {
 
 // Morgenwert des Folgetags: die 24-Stunden-Reaktion auf die Einheit dieses Tages.
 export function folgeMorgenFuer(datum) {
-  const i = PLAN.tage.findIndex((t) => t.datum === datum);
-  const naechster = PLAN.tage[i + 1];
+  const liste = tage();
+  const i = liste.findIndex((t) => t.datum === datum);
+  const naechster = liste[i + 1];
   if (!naechster) return null;
   const e = alleEintraege()[naechster.datum];
   return ausgangsWert(e?.morgen) == null ? null : e.morgen;
@@ -66,11 +84,12 @@ export function folgeMorgenFuer(datum) {
 // um 2 oder mehr Punkte gegenueber dem Morgen des Trainingstags selbst.
 export function vergleichMorgenFuer(datum) {
   const eintraege = alleEintraege();
-  const i = PLAN.tage.findIndex((t) => t.datum === datum);
+  const liste = tage();
+  const i = liste.findIndex((t) => t.datum === datum);
   for (let k = i - 1; k >= 0; k -= 1) {
-    const training = PLAN.tage[k];
+    const training = liste[k];
     if (!istTrainingstag(training)) continue;
-    const danach = PLAN.tage[k + 1];
+    const danach = liste[k + 1];
     const morgenDanach = danach ? eintraege[danach.datum]?.morgen : null;
     const wertDanach = ausgangsWert(morgenDanach);
     if (wertDanach == null) return null;
@@ -124,9 +143,10 @@ export function setzeAuswertung(feld, wert) {
 // Zone der letzten Einheit vor diesem Tag. Sie entscheidet mit darueber, was
 // heute erlaubt ist: rot sperrt Spruenge, gelb reduziert sie um 20 bis 30 Prozent.
 export function letzteTrainingsZone(datum) {
-  const i = PLAN.tage.findIndex((t) => t.datum === datum);
+  const liste = tage();
+  const i = liste.findIndex((t) => t.datum === datum);
   for (let k = i - 1; k >= 0; k -= 1) {
-    const training = PLAN.tage[k];
+    const training = liste[k];
     if (!istTrainingstag(training)) continue;
     const befund = zoneFuerTag(eintragFuer(training.datum), folgeMorgenFuer(training.datum));
     return befund.zone === 'offen' ? null : befund.zone;
@@ -139,8 +159,56 @@ export function oeffneMesspunkt(schluessel) {
   aktualisiere();
 }
 
+// --- Wochenplan aendern ---
+
+export function belastungenFuer(montag) {
+  return belastungenDerWoche(montag, wochenplan());
+}
+
+export function wocheAngepasst(montag) {
+  return istAngepasst(montag, wochenplan());
+}
+
+export function setzeWoche(montag, belastungen) {
+  const z = zustand.speicher.lies();
+  zustand.speicher.schreib({
+    ...z,
+    wochenplan: { ...(z.wochenplan ?? {}), [montag]: { belastungen } }
+  });
+  aktualisiere();
+}
+
+// Setzt eine Woche auf die Vorgabe des Dokuments zurueck.
+export function wocheZuruecksetzen(montag) {
+  const z = zustand.speicher.lies();
+  const neu = { ...(z.wochenplan ?? {}) };
+  delete neu[montag];
+  zustand.speicher.schreib({ ...z, wochenplan: neu });
+  aktualisiere();
+}
+
+export function wocheAnfuegen() {
+  const montag = naechsteWoche(wochenplan());
+  setzeWoche(montag, belastungenDerWoche(montag, {}));
+  return montag;
+}
+
+export const montagVon = montagDerWoche;
+
 export function wechsleAnsicht(name) {
   zustand.ansicht = name;
+  aktualisiere();
+}
+
+export function oeffneWoche(montag) {
+  zustand.offeneWoche = montag;
+  zustand.wochenEntwurf = null;
+  wechsleAnsicht('plan');
+}
+
+export function schliesseWoche() {
+  zustand.offeneWoche = null;
+  zustand.wochenEntwurf = null;
   aktualisiere();
 }
 
