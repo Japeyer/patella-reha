@@ -106,3 +106,43 @@ test('leere Daten ergeben ein gültiges SVG ohne Linien', () => {
   assert.match(svg, /<\/svg>$/);
   assert.ok(!/class="reihe /.test(svg));
 });
+
+// --- Sprungkraft-Block ---
+
+test('Sprung-Reihen: Morgen und Abend', async () => {
+  const { REIHEN_SPRUNG } = await import('../src/chart.js');
+  assert.deepEqual(REIHEN_SPRUNG.map((r) => r.schluessel), ['morgen', 'abend']);
+  assert.equal(REIHEN_SPRUNG[0].wert({ morgen: { ruhe: 1, treppe: 3 } }), 3);
+  assert.equal(REIHEN_SPRUNG[1].wert({ abend: { schmerz: 2 } }), 2);
+  assert.equal(REIHEN_SPRUNG[1].wert({}), null);
+});
+
+test('Sprung-Bänder folgen dem Kontrollsystem: grün bis 1, gelb 2 bis 3, rot ab 4', async () => {
+  const { BAENDER_SPRUNG } = await import('../src/chart.js');
+  assert.deepEqual(BAENDER_SPRUNG.map((b) => [b.name, b.von, b.bis]),
+    [['grün', 0, 1.5], ['gelb', 1.5, 3.5], ['rot', 3.5, 10]]);
+});
+
+test('Sprung-Diagramm markiert Spiele und beschriftet wöchentlich', async () => {
+  const { REIHEN_SPRUNG, BAENDER_SPRUNG, sprungMarke } = await import('../src/chart.js');
+  const { sprungTage, leererSprungZustand } = await import('../src/sprung-logik.js');
+  const tage = sprungTage(leererSprungZustand());
+  const svg = svgVerlauf(reihenDaten({}, tage, REIHEN_SPRUNG), tage,
+    { breite: 360, hoehe: 200, baender: BAENDER_SPRUNG, marke: sprungMarke, skala: [0, 2, 10], beschriftungAlle: 7 });
+  assert.equal((svg.match(/tagmarke-spiel/g) ?? []).length, 6);
+  assert.match(svg, />2</);
+  assert.ok(!/>3</.test(svg), 'Grenze 3 gehört zum Reha-Block');
+  const beschriftungen = (svg.match(/class="achse" x="[^"]+" y="19[0-9]/g) ?? []).length;
+  assert.ok(beschriftungen <= 10, `${beschriftungen} Datumsbeschriftungen`);
+  assert.match(svg, /über 58 Tage/);
+});
+
+test('die letzte Datumsbeschriftung überlappt keine reguläre', async () => {
+  const { REIHEN_SPRUNG, BAENDER_SPRUNG, sprungMarke } = await import('../src/chart.js');
+  const { sprungTage, leererSprungZustand } = await import('../src/sprung-logik.js');
+  const tage = sprungTage(leererSprungZustand());
+  const svg = svgVerlauf(reihenDaten({}, tage, REIHEN_SPRUNG), tage,
+    { breite: 360, hoehe: 200, baender: BAENDER_SPRUNG, marke: sprungMarke, skala: [0, 2, 10], beschriftungAlle: 7 });
+  assert.match(svg, />3\.1\.</);
+  assert.ok(!/>2\.1\.</.test(svg), '2.1. liegt direkt neben 3.1.');
+});

@@ -11,6 +11,40 @@ nächster fällig. Alles Weitere — Übungen, Sprungzähler, Befundbegründung,
 Fortschritts-Gate, Auswertungsbogen — liegt unter "Mehr zum Tag" eine Ebene
 tiefer. Drei Ansichten: Heute, Verlauf, Plan.
 
+## Sprungkraft-Block (7. November 2026 bis 3. Januar 2027)
+
+Seit Version 6 führt die App einen zweiten Block: den 8-Wochen-Plan für
+Sprungkraft und Patellasehne mit den Spielen vom 7.11. bis 12.12. Quelle ist
+`docs/plan-sprungkraft-original.txt`, wörtlich übernommen in
+`src/sprung-data.js` (Schweizer ss, Emojis nur in der Übersichtstabelle);
+`node tools/vollstaendigkeit.mjs` prüft jede Quellzeile.
+
+- **Daten bleiben:** gleicher Speicherschlüssel `patella-app-v1`, `version: 1`,
+  neue Felder nur zusätzlich (`abend`, `beschwerdenZunehmend`, `sprung`). Die
+  Reha-Tage bis 4. Oktober bleiben mit ihren alten Regeln im Verlauf.
+- **Ampel:** Kontrollsystem des Plans, bewertet den Morgen (höherer Wert aus
+  Ruhe und Treppe abwärts) – grün 0–1 und wie üblich, gelb 2–3 oder merklich
+  über dem Normalwert, rot über 3 oder zunehmende Beschwerden. Abends wird nach
+  Training oder Spiel ein Wert erfasst und im Verlauf gezeigt.
+- **Krafttraining:** je Übung Sätze × Wiederholungen @ RIR und die Hinweise
+  des Plans, Sätze zum Abhaken. Keine eigenen Technikbeschreibungen.
+- **Verschieben und Einfügen:** Einheiten behalten ihre Übungen. Fünf Regeln
+  aus dem Plan melden sich mit Wortlaut, blockieren aber nie (Kraft am Vortag,
+  zwei Tage vor oder am Tag eines Spiels; Belt Squat am Montag; RDL, Nordic oder
+  Drop Jump am Volleyballtag).
+
+Festlegungen der App, wo der Plan keine Zahl nennt:
+
+| Festlegung | Begründung |
+|---|---|
+| Normalwert = Median der letzten bis zu 14 Morgen in 28 Tagen, ab 3 Werten | «persönlicher Normalwert» braucht eine Rechenregel |
+| «merklich mehr» = mindestens 1 Punkt über dem Normalwert | sonst wäre das Kriterium neben der Schwelle 2 wirkungslos |
+| hohe Belastung = Spiel, Volleyball, Beintag, Sprungtest | Zeitpunkt «Morgen nach einer hohen Belastung» |
+| Pausen- und Ausführungshinweise der Grundform gelten für dieselbe Übung in allen Wochen, gekennzeichnet «aus Beintag A/B»; Intensitäten nie | die Wochen nennen meist nur Sätze und RIR |
+| Wochenende ohne Wochentext: Text der Übersichtstabelle, in der App «aus der Übersicht» markiert | Tabelle ist Teil der Quelle |
+| Tagesart «Regeneration» auch für «Kein Beintraining.» (Fr 11.12.) und «Erholung» (Woche 8) | ein gemeinsamer Tagestyp für Tage ohne Belastung; der Wortlaut steht in der Einheit |
+| Bestwerte des Sprungtests in cm | Quelle sagt nur «Bestwert notieren» |
+
 ## Wochen anpassen
 
 Verschiebt sich ein Training wegen eines Matches oder einer geänderten
@@ -51,7 +85,9 @@ in der App den dokumentierten Tag, von dem ihr Inhalt stammt.
 
 ### Wochen anfügen
 
-Ein Knopf verlängert den Plan über den 4. Oktober hinaus. Angefügte Wochen
+Bis Version 5 verlängerte ein Knopf den Plan über den 4. Oktober hinaus; seit
+Version 6 deckt der Sprungkraft-Block die Zeit danach ab und der Knopf entfällt.
+Früher angefügte Wochen bleiben bis zum 6. November erhalten. Angefügte Wochen
 übernehmen die Umfänge der Woche 2 unverändert — 15 bis 25 Sprünge, 70 bis 80
 Prozent Trainingsdauer. **Die App steigert nichts von selbst**; das Dokument
 endet am 4. Oktober und nennt für die Zeit danach keine Zahlen. Es sieht

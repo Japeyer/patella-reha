@@ -89,6 +89,8 @@ export function erzeugeSpeicher(backend) {
           e.vor?.ruhe != null ? `vor dem Training ${e.vor.ruhe}/10` : null,
           e.waehrend?.max != null ? `während ${e.waehrend.max}/10` : null,
           e.nach?.schmerz != null ? `nach dem Training ${e.nach.schmerz}/10` : null,
+          e.abend?.schmerz != null ? `Abend ${e.abend.schmerz}/10` : null,
+          e.beschwerdenZunehmend === true ? 'Beschwerden nehmen zu' : null,
           e.spruenge ? `${e.spruenge} Sprünge` : null,
           e.landungVeraendert === true ? 'Landung verändert' : null,
           e.schwellungInstabilitaetKraftverlust === true ? 'Schwellung, Instabilität oder Kraftverlust' : null,
@@ -96,6 +98,12 @@ export function erzeugeSpeicher(backend) {
         ].filter(Boolean);
         zeilen.push(`${datum}: ${teile.join(', ') || 'kein Eintrag'}`);
       }
+      const test = zustand.sprung?.sprungtest ?? {};
+      const bestwerte = [
+        test.approach ? `Approach Jump ${test.approach} cm` : null,
+        test.cmj ? `CMJ ${test.cmj} cm` : null
+      ].filter(Boolean);
+      if (bestwerte.length) zeilen.push('', `Sprungtest: ${bestwerte.join(', ')}`);
       zeilen.push('', 'Zum Wiederherstellen die folgende Zeile mitkopieren:',
         MARKE + JSON.stringify(zustand));
       return zeilen.join('\n');

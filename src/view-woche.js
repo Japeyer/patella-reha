@@ -9,7 +9,7 @@ import { wochenNummer, phaseFuerWoche } from './kalender.js';
 import { wochenTage, wochentagVon, datumKurz, datumLang } from './datum.js';
 import {
   zustand, belastungenFuer, wocheAngepasst, setzeWoche, wocheZuruecksetzen,
-  wocheAnfuegen, aktualisiere, wochen
+  aktualisiere, wochen
 } from './state.js';
 import { esc } from './ui.js';
 
@@ -132,25 +132,5 @@ export function bindeWochenEditor(ziel, montag, beiFertig) {
     wocheZuruecksetzen(montag);
     zustand.wochenEntwurf = null;
     beiFertig?.();
-  });
-}
-
-export function wocheAnfuegenMarkup() {
-  return `<section class="abschnitt">
-    <h3>Der Plan reicht weiter als zwei Wochen?</h3>
-    <p class="leise">Eine angefügte Woche übernimmt die Umfänge der Woche 2
-      unverändert: 15 bis 25 Sprünge, 70 bis 80 Prozent Trainingsdauer. Die App
-      steigert nichts von selbst — dein Plandokument endet am 4. Oktober und
-      nennt für die Zeit danach keine Zahlen.</p>
-    <p class="leise">Es sieht vor, bei ungünstiger Entwicklung Diagnose und
-      Belastungsplanung sportmedizinisch überprüfen zu lassen.</p>
-    <button type="button" class="fuss-knopf" id="woche-anfuegen">Woche anfügen</button>
-  </section>`;
-}
-
-export function bindeWocheAnfuegen(ziel, beiAngefuegt) {
-  ziel.querySelector('#woche-anfuegen')?.addEventListener('click', () => {
-    const montag = wocheAnfuegen();
-    beiAngefuegt?.(montag);
   });
 }

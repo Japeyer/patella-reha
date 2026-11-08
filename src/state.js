@@ -6,9 +6,12 @@ import { PLAN } from './plan-data.js';
 import { leerEintrag, zoneFuerTag, ausgangsWert } from './logic.js';
 import { erzeugeSpeicher } from './storage.js';
 import {
-  effektiveTage, effektiveWochen, belastungenDerWoche, naechsteWoche, istAngepasst
+  effektiveTage, effektiveWochen, belastungenDerWoche, istAngepasst
 } from './kalender.js';
 import { montagDerWoche } from './datum.js';
+import {
+  SPRUNG_START, sprungTage, sprungWochen, leererSprungZustand
+} from './sprung-logik.js';
 
 const backend = (() => {
   try { return globalThis.localStorage ?? null; } catch { return null; }
@@ -28,7 +31,11 @@ export const zustand = {
   mehrOffen: false,
   // Wochenplanung: welche Woche offen ist und der noch nicht uebernommene Entwurf.
   offeneWoche: null,
-  wochenEntwurf: null
+  wochenEntwurf: null,
+  // Sprungkraft-Block: offenes Verschieben oder Einfuegen samt Entwurf, und
+  // welcher Block im Verlauf gezeigt wird (null = der Block von heute).
+  aktion: null,
+  verlaufBlock: null
 };
 
 let zeichner = () => {};
@@ -43,10 +50,21 @@ export const alleEintraege = () => zustand.speicher.lies().eintraege;
 // Der gespeicherte Wochenplan. Leer heisst: alles wie im Dokument.
 export const wochenplan = () => zustand.speicher.lies().wochenplan ?? {};
 
-// Die Tage, die die App fuehrt. Ohne Anpassung sind das genau PLAN.tage.
-// Wird bei jedem Zeichnen neu gerechnet; die Wochenplanung ist billig.
-export const tage = () => effektiveTage(wochenplan());
-export const wochen = () => effektiveWochen(wochenplan());
+// Der gespeicherte Teil des Sprungkraft-Blocks; fehlt in Staenden vor dem Update.
+export const sprungZustand = () => ({ ...leererSprungZustand(), ...(zustand.speicher.lies().sprung ?? {}) });
+
+// Die Tage, die die App fuehrt: zuerst der Reha-Block (ohne Anpassung genau
+// PLAN.tage), dann der Sprungkraft-Block. Reha-Tage enden vor dem
+// Sprungkraft-Block, auch wenn dort frueher Wochen angefuegt wurden.
+// Wird bei jedem Zeichnen neu gerechnet; beide Rechnungen sind billig.
+export const rehaTage = () => effektiveTage(wochenplan()).filter((t) => t.datum < SPRUNG_START);
+export const tage = () => [...rehaTage(), ...sprungTage(sprungZustand())];
+export const wochen = () => [
+  ...effektiveWochen(wochenplan())
+    .map((w) => ({ ...w, block: 'reha', tage: w.tage.filter((t) => t.datum < SPRUNG_START) }))
+    .filter((w) => w.tage.length > 0),
+  ...sprungWochen(sprungZustand()).map((w) => ({ ...w, block: 'sprung', angepasst: false, hinweise: [] }))
+];
 
 export const tagFuer = (datum) => tage().find((t) => t.datum === datum) ?? null;
 // Gegen leerEintrag aufgefuellt, damit ein wiederhergestellter Eintrag aus einer
@@ -60,8 +78,10 @@ export function heutigerPlantag(heute = new Date()) {
   const key = `${jahr}-${monat}-${tagZahl}`;
   const treffer = tagFuer(key);
   if (treffer) return treffer;
+  // Zwischen den Bloecken und nach dem Ende gilt der letzte gefuehrte Tag davor.
   const liste = tage();
-  return key < liste[0].datum ? liste[0] : liste[liste.length - 1];
+  if (key < liste[0].datum) return liste[0];
+  return liste.filter((t) => t.datum <= key).at(-1);
 }
 
 export function aktuellesDatum() {
@@ -69,9 +89,11 @@ export function aktuellesDatum() {
 }
 
 // Morgenwert des Folgetags: die 24-Stunden-Reaktion auf die Einheit dieses Tages.
+// Nur fuer Reha-Tage: der Sprungkraft-Block bewertet seine Morgen selbst.
 export function folgeMorgenFuer(datum) {
-  const liste = tage();
+  const liste = rehaTage();
   const i = liste.findIndex((t) => t.datum === datum);
+  if (i < 0) return null;
   const naechster = liste[i + 1];
   if (!naechster) return null;
   const e = alleEintraege()[naechster.datum];
@@ -84,7 +106,7 @@ export function folgeMorgenFuer(datum) {
 // um 2 oder mehr Punkte gegenueber dem Morgen des Trainingstags selbst.
 export function vergleichMorgenFuer(datum) {
   const eintraege = alleEintraege();
-  const liste = tage();
+  const liste = rehaTage();
   const i = liste.findIndex((t) => t.datum === datum);
   for (let k = i - 1; k >= 0; k -= 1) {
     const training = liste[k];
@@ -143,7 +165,7 @@ export function setzeAuswertung(feld, wert) {
 // Zone der letzten Einheit vor diesem Tag. Sie entscheidet mit darueber, was
 // heute erlaubt ist: rot sperrt Spruenge, gelb reduziert sie um 20 bis 30 Prozent.
 export function letzteTrainingsZone(datum) {
-  const liste = tage();
+  const liste = rehaTage();
   const i = liste.findIndex((t) => t.datum === datum);
   for (let k = i - 1; k >= 0; k -= 1) {
     const training = liste[k];
@@ -187,12 +209,6 @@ export function wocheZuruecksetzen(montag) {
   aktualisiere();
 }
 
-export function wocheAnfuegen() {
-  const montag = naechsteWoche(wochenplan());
-  setzeWoche(montag, belastungenDerWoche(montag, {}));
-  return montag;
-}
-
 export const montagVon = montagDerWoche;
 
 export function wechsleAnsicht(name) {
@@ -217,5 +233,6 @@ export function setzeDatum(datum) {
   zustand.letzterSprung = null;
   zustand.letzterAbstand = null;
   zustand.offenerMesspunkt = null;
+  zustand.aktion = null;
   wechsleAnsicht('heute');
 }

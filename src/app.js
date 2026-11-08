@@ -2,23 +2,73 @@
 // 14-Tage-Leiste, der Plan das Nachschlagewerk.
 
 import { PLAN } from './plan-data.js';
-import { REIHEN, reihenDaten, svgVerlauf } from './chart.js';
+import {
+  REIHEN, REIHEN_SPRUNG, BAENDER_SPRUNG, sprungMarke, reihenDaten, svgVerlauf
+} from './chart.js';
 import {
   zustand, registriereZeichner, aktualisiere, alleEintraege,
-  aktuellesDatum, setzeDatum, wechsleAnsicht, tage, oeffneWoche
+  aktuellesDatum, setzeDatum, wechsleAnsicht, tage, rehaTage, oeffneWoche, heutigerPlantag
 } from './state.js';
 import { zeichneHeute } from './view-today.js';
 import { tagesLeisteMarkup, bindeLeiste } from './view-overview.js';
 import { zeichnePlan, warnzeichenInhalt } from './view-reference.js';
 import { esc } from './ui.js';
 
+// Umschalter zwischen den beiden Bloecken; ohne Wahl der Block von heute.
+function verlaufBlock() {
+  return zustand.verlaufBlock ?? (heutigerPlantag().block === 'sprung' ? 'sprung' : 'reha');
+}
+
+function blockUmschalter(block) {
+  const knopf = (wert, name) => `<button type="button" data-block="${wert}" aria-pressed="${block === wert}">${name}</button>`;
+  return `<div class="wahl wahl-block" role="group" aria-label="Block">
+    ${knopf('sprung', 'Sprungkraft')}${knopf('reha', 'Reha')}
+  </div>`;
+}
+
+function bindeUmschalter(ziel) {
+  ziel.querySelectorAll('[data-block]').forEach((knopf) => {
+    knopf.addEventListener('click', () => {
+      zustand.verlaufBlock = knopf.dataset.block;
+      aktualisiere();
+    });
+  });
+}
+
+function zeichneSprungVerlauf(ziel) {
+  const planTage = tage().filter((t) => t.block === 'sprung');
+  const daten = reihenDaten(alleEintraege(), planTage, REIHEN_SPRUNG);
+  const erfasst = daten.some((r) => r.punkte.some((p) => p.wert !== null));
+  ziel.innerHTML = `
+    ${blockUmschalter('sprung')}
+    <section class="abschnitt">
+      <h2>Schmerzverlauf</h2>
+      <div class="diagramm">${svgVerlauf(daten, planTage, {
+        breite: 360, hoehe: 200, baender: BAENDER_SPRUNG, marke: sprungMarke, skala: [0, 2, 10], beschriftungAlle: 7
+      })}</div>
+      <ul class="legende">
+        ${REIHEN_SPRUNG.map((r) => `<li class="legende-${r.schluessel}">${esc(r.name)}</li>`).join('')}
+      </ul>
+      ${erfasst ? '' : '<p class="leise">Noch keine Werte erfasst.</p>'}
+    </section>
+    ${tagesLeisteMarkup('sprung')}
+  `;
+  bindeUmschalter(ziel);
+  ziel.querySelectorAll('circle[data-datum]').forEach((punkt) => {
+    punkt.addEventListener('click', () => setzeDatum(punkt.dataset.datum));
+  });
+  bindeLeiste(ziel, oeffneWoche);
+}
+
 function zeichneVerlauf(ziel) {
-  const planTage = tage();
+  if (verlaufBlock() === 'sprung') { zeichneSprungVerlauf(ziel); return; }
+  const planTage = rehaTage();
   const daten = reihenDaten(alleEintraege(), planTage);
   const erfasst = daten.reduce((summe, r) => summe + r.punkte.filter((p) => p.wert !== null).length, 0);
   const sichtbar = zustand.nurMorgen ? REIHEN.slice(0, 1) : REIHEN;
 
   ziel.innerHTML = `
+    ${blockUmschalter('reha')}
     <section class="abschnitt">
       <h2>Morgenschmerz über ${planTage.length} Tage</h2>
       <p class="leise">Der höhere Wert aus Ruhe und Treppenabwärtsgehen. Diese Reihe
@@ -33,9 +83,10 @@ function zeichneVerlauf(ziel) {
       </label>
       ${erfasst === 0 ? '<p class="leise">Noch keine Werte erfasst.</p>' : ''}
     </section>
-    ${tagesLeisteMarkup()}
+    ${tagesLeisteMarkup('reha')}
   `;
 
+  bindeUmschalter(ziel);
   ziel.querySelector('#schalter-alle').addEventListener('change', (ereignis) => {
     zustand.nurMorgen = !ereignis.target.checked;
     aktualisiere();

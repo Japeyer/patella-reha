@@ -13,6 +13,11 @@ export function leerEintrag(datum) {
     vor: { ruhe: null, treppe: null, stepDownsMoeglich: null, hinken: null },
     waehrend: { max: null, zunahmeProSatz: null },
     nach: { schmerz: null },
+    // Sprungkraft-Block: Abendwert nach Training oder Spiel und "zunehmende
+    // Beschwerden" aus dem Kontrollsystem des Plans. Alte Eintraege haben sie
+    // nicht; eintragFuer fuellt sie gegen diese Vorlage auf.
+    abend: { schmerz: null },
+    beschwerdenZunehmend: null,
     spruenge: 0,
     landungVeraendert: null,
     schwellungInstabilitaetKraftverlust: null,

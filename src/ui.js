@@ -42,6 +42,29 @@ export const TYP_KUERZEL = {
   auswertung: 'Ausw'
 };
 
+// Tagesarten des Sprungkraft-Blocks (sprung-logik.js tagesTyp).
+export const SPRUNG_TYP_GROSS = {
+  spiel: 'Spiel',
+  sprungtest: 'Sprungtest',
+  'kraft-vb': 'Beintag + Volleyball',
+  kraft: 'Beintag',
+  volleyball: 'Volleyball',
+  regeneration: 'Regeneration',
+  eigene: 'Eigene Einheit',
+  frei: 'Frei'
+};
+
+export const SPRUNG_TYP_KUERZEL = {
+  spiel: 'SP',
+  sprungtest: 'Test',
+  'kraft-vb': 'B+V',
+  kraft: 'B',
+  volleyball: 'VB',
+  regeneration: 'Reg',
+  eigene: 'E',
+  frei: '–'
+};
+
 // Farbe allein traegt nie die Information: jede Zone hat zusaetzlich Name und
 // Zeichen.
 export const ZONEN_NAME = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot', offen: 'Offen' };
@@ -67,6 +90,14 @@ export function stufenZone(n) {
   return 'rot';
 }
 
+// Dieselbe Faerbung nach dem Kontrollsystem des Sprungkraft-Blocks:
+// 0 bis 1 gruen, 2 bis 3 gelb, ueber 3 rot.
+export function sprungStufenZone(n) {
+  if (n <= 1) return 'gruen';
+  if (n <= 3) return 'gelb';
+  return 'rot';
+}
+
 export function zonenMarke(zone, vorlaeufig = false) {
   const zusatz = vorlaeufig ? ' vorläufig' : '';
   return `<span class="zonen-marke marke-${zone}">${ZONEN_ZEICHEN[zone]} ${ZONEN_NAME[zone]}${zusatz}</span>`;
@@ -74,10 +105,10 @@ export function zonenMarke(zone, vorlaeufig = false) {
 
 // Elf Knoepfe 0 bis 10. Ein erneuter Druck auf den gewaehlten Wert loescht ihn,
 // damit ein Fehlgriff nicht als Messwert stehen bleibt.
-export function schmerzFeld({ pfad, beschriftung, wert, id }) {
+export function schmerzFeld({ pfad, beschriftung, wert, id, stufe = stufenZone }) {
   const knoepfe = Array.from({ length: 11 }, (_, n) => {
     const gewaehlt = wert === n;
-    return `<button type="button" id="${id}-${n}" class="stufe-${stufenZone(n)}" `
+    return `<button type="button" id="${id}-${n}" class="stufe-${stufe(n)}" `
       + `data-wert="${n}" aria-pressed="${gewaehlt}" `
       + `aria-label="${esc(beschriftung)}: ${n} von 10">${n}</button>`;
   }).join('');

@@ -14,8 +14,15 @@ export const REIHEN = [
   { schluessel: 'nach', name: 'Nach dem Training', wert: (e) => e?.nach?.schmerz ?? null }
 ];
 
-export function reihenDaten(eintraege, tage) {
-  return REIHEN.map((reihe) => ({
+// Sprungkraft-Block: der Morgen wie im Reha-Block und der Abend nach Training
+// oder Spiel, den das Kontrollsystem neben dem naechsten Morgen beobachtet.
+export const REIHEN_SPRUNG = [
+  { schluessel: 'morgen', name: 'Morgen', wert: (e) => ausgangsWert(e?.morgen) },
+  { schluessel: 'abend', name: 'Abend', wert: (e) => e?.abend?.schmerz ?? null }
+];
+
+export function reihenDaten(eintraege, tage, reihen = REIHEN) {
+  return reihen.map((reihe) => ({
     schluessel: reihe.schluessel,
     name: reihe.name,
     punkte: tage.map((tag, index) => ({
@@ -36,36 +43,60 @@ const BAENDER = [
   { von: 3.5, bis: 10, klasse: 'zone-rot', name: 'rot', mitte: 6.75 }
 ];
 
+// Kontrollsystem des Sprungkraft-Blocks: 0 bis 1 gruen, 2 bis 3 gelb, ueber 3 rot.
+export const BAENDER_SPRUNG = [
+  { von: 0, bis: 1.5, klasse: 'zone-gruen', name: 'grün', mitte: 0.75 },
+  { von: 1.5, bis: 3.5, klasse: 'zone-gelb', name: 'gelb', mitte: 2.5 },
+  { von: 3.5, bis: 10, klasse: 'zone-rot', name: 'rot', mitte: 6.75 }
+];
+
+// Tagmarken: Volleyball und Kraft im Reha-Block (unveraendert) ...
+function rehaMarke(tag) {
+  if (tag.typ.startsWith('volleyball')) return 'tagmarke tagmarke-volleyball';
+  if (tag.typ === 'kraft-a' || tag.typ === 'kraft-b') return 'tagmarke tagmarke-kraft';
+  return null;
+}
+
+// ... und im Sprungkraft-Block zusaetzlich die Spiele.
+export function sprungMarke(tag) {
+  if (tag.typ === 'spiel') return 'tagmarke tagmarke-spiel';
+  if (tag.typ === 'volleyball' || tag.typ === 'kraft-vb') return 'tagmarke tagmarke-volleyball';
+  if (tag.typ === 'kraft' || tag.typ === 'sprungtest') return 'tagmarke tagmarke-kraft';
+  return null;
+}
+
 export function svgVerlauf(daten, tage, optionen = {}) {
   const breite = optionen.breite ?? 360;
   const hoehe = optionen.hoehe ?? 200;
+  const baender = optionen.baender ?? BAENDER;
+  const marke = optionen.marke ?? rehaMarke;
+  const skala = optionen.skala ?? [0, 3, 10];
+  const beschriftungAlle = optionen.beschriftungAlle ?? 3;
   const innenBreite = breite - RAND.links - RAND.rechts;
   const innenHoehe = hoehe - RAND.oben - RAND.unten;
   const x = (i) => RAND.links + (tage.length === 1 ? 0 : (i * innenBreite) / (tage.length - 1));
   const y = (w) => RAND.oben + innenHoehe - (w / 10) * innenHoehe;
 
   const teile = [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${breite} ${hoehe}" role="img" aria-label="Schmerzverlauf über die 14 Plantage, Skala 0 bis 10, mit den Zonen grün, gelb und rot">`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${breite} ${hoehe}" role="img" aria-label="Schmerzverlauf über ${tage.length} Tage, Skala 0 bis 10, mit den Zonen grün, gelb und rot">`
   ];
 
   // Baender mit Namen am rechten Rand: die Zone ist damit lesbar und nicht nur
   // farblich angedeutet.
-  for (const band of BAENDER) {
+  for (const band of baender) {
     teile.push(`<rect class="${band.klasse}" x="${RAND.links}" y="${y(band.bis).toFixed(1)}" width="${innenBreite}" height="${(y(band.von) - y(band.bis)).toFixed(1)}"/>`);
     teile.push(`<text class="zonenschrift zonenschrift-${band.name}" x="${breite - RAND.rechts + 5}" y="${(y(band.mitte) + 3).toFixed(1)}">${band.name}</text>`);
   }
 
-  // Nur drei Marken auf der Skala: 0, die Grenze 3, und 10.
-  for (const wert of [0, 3, 10]) {
+  // Nur drei Marken auf der Skala: 0, die erste gelbe Stufe (Reha 3, Sprungkraft 2) und 10.
+  for (const wert of skala) {
     teile.push(`<line class="raster" x1="${RAND.links}" y1="${y(wert).toFixed(1)}" x2="${breite - RAND.rechts}" y2="${y(wert).toFixed(1)}"/>`);
     teile.push(`<text class="achse" x="${RAND.links - 5}" y="${(y(wert) + 3.5).toFixed(1)}" text-anchor="end">${wert}</text>`);
   }
 
   tage.forEach((tag, i) => {
-    if (!tag.typ.startsWith('volleyball') && tag.typ !== 'kraft-a' && tag.typ !== 'kraft-b') return;
-    const klasse = tag.typ.startsWith('volleyball')
-      ? 'tagmarke tagmarke-volleyball'
-      : 'tagmarke tagmarke-kraft';
+    const klasse = marke(tag);
+    if (!klasse) return;
     teile.push(`<line class="${klasse}" x1="${x(i).toFixed(1)}" y1="${RAND.oben}" x2="${x(i).toFixed(1)}" y2="${RAND.oben + innenHoehe}"/>`);
   });
 
@@ -90,9 +121,11 @@ export function svgVerlauf(daten, tage, optionen = {}) {
     }
   }
 
-  // Beschriftung nur an jedem dritten Tag, damit die Achse ruhig bleibt.
+  // Beschriftung nur an jedem n-ten Tag (Reha 3, Sprungkraft 7), damit die Achse ruhig bleibt.
   tage.forEach((tag, i) => {
-    if (i % 3 !== 0 && i !== tage.length - 1) return;
+    // Der letzte Tag ist immer beschriftet; eine regulaere Marke zu nah davor entfaellt.
+    const letzter = tage.length - 1;
+    if (i !== letzter && (i % beschriftungAlle !== 0 || letzter - i < beschriftungAlle / 2)) return;
     teile.push(`<text class="achse" x="${x(i).toFixed(1)}" y="${hoehe - 7}" text-anchor="middle">${Number(tag.datum.slice(8))}.${Number(tag.datum.slice(5, 7))}.</text>`);
   });
 

@@ -3,9 +3,8 @@
 import { PLAN } from './plan-data.js';
 import { esc, liste } from './ui.js';
 import { zustand, schliesseWoche, oeffneWoche } from './state.js';
-import {
-  wochenEditorMarkup, bindeWochenEditor, wocheAnfuegenMarkup, bindeWocheAnfuegen
-} from './view-woche.js';
+import { wochenEditorMarkup, bindeWochenEditor } from './view-woche.js';
+import { sprungPlanMarkup, bindeSprungPlan } from './view-sprung-plan.js';
 import { wochen } from './state.js';
 import { datumLang } from './datum.js';
 
@@ -16,7 +15,7 @@ const zonenkarte = (schluessel, zone) => `<div class="zonenkarte zonenkarte-${sc
 </div>`;
 
 function wochenUebersichtMarkup() {
-  const liste = wochen().map((w) => `<button type="button" class="wochenzeile" data-woche="${w.montag}">
+  const liste = wochen().filter((w) => w.block === 'reha').map((w) => `<button type="button" class="wochenzeile" data-woche="${w.montag}">
       <span class="wochenzeile-name">Woche ${w.woche}${w.angepasst ? ' · angepasst' : ''}</span>
       <span class="wochenzeile-datum">ab ${esc(datumLang(w.montag))}</span>
     </button>`).join('');
@@ -37,7 +36,14 @@ export function zeichnePlan(ziel) {
     return;
   }
 
-  ziel.innerHTML = `${wochenUebersichtMarkup()}${wocheAnfuegenMarkup()}` + `
+  // Der Sprungkraft-Block steht zuerst. Der abgeschlossene Reha-Plan bleibt
+  // eingeklappt erreichbar, samt Wochenplanung seiner Wochen. "Woche anfuegen"
+  // entfaellt: die Zeit danach deckt der Sprungkraft-Block ab.
+  ziel.innerHTML = `${sprungPlanMarkup()}
+    <section class="abschnitt">
+    <details class="reha-plan">
+    <summary>Reha-Plan 21. September bis 4. Oktober</summary>
+    ${wochenUebersichtMarkup()}
     <section class="abschnitt">
       <h2>${esc(PLAN.titel)}</h2>
       <p class="leise">${esc(PLAN.zeitraum.text)}</p>
@@ -92,12 +98,14 @@ export function zeichnePlan(ziel) {
         ${liste(PLAN.warnzeichen, 'warnliste')}
       </details>
     </section>
+    </details>
+    </section>
   `;
 
   ziel.querySelectorAll('.wochenzeile[data-woche]').forEach((zeile) => {
     zeile.addEventListener('click', () => oeffneWoche(zeile.dataset.woche));
   });
-  bindeWocheAnfuegen(ziel, (montag) => oeffneWoche(montag));
+  bindeSprungPlan(ziel);
 }
 
 export function warnzeichenInhalt() {

@@ -15,8 +15,9 @@ import {
   zustand, alleEintraege, eintragFuer, tagFuer, folgeMorgenFuer, vergleichMorgenFuer,
   letzteTrainingsZone, setzeWert, schalteUebung, istTrainingstag, setzeDatum,
   oeffneMesspunkt, fortschrittAntworten, setzeFortschritt, auswertungWerte,
-  setzeAuswertung, heutigerPlantag, tage
+  setzeAuswertung, heutigerPlantag, tage, rehaTage
 } from './state.js';
+import { zeichneSprungHeute } from './view-sprung.js';
 import {
   esc, schmerzFeld, jaNeinFeld, uebungZeile, zonenMarke, liste,
   TYP_NAME, TYP_GROSS, datumLang, ZONEN_NAME
@@ -26,7 +27,7 @@ const KONTROLLTAG = '2026-09-27';
 const AUSWERTUNGSTAG = '2026-10-04';
 
 function naechsteEinheit(datum) {
-  const liste = tage();
+  const liste = rehaTage();
   const i = liste.findIndex((t) => t.datum === datum);
   return liste.slice(i + 1).find(istTrainingstag) ?? null;
 }
@@ -379,6 +380,9 @@ export function zeichneHeute(ziel, datum) {
   const liste = tage();
   const tag = tagFuer(datum) ?? liste[0];
   const i = liste.findIndex((t) => t.datum === tag.datum);
+
+  // Tage des Sprungkraft-Blocks haben ihre eigene Ansicht.
+  if (tag.block === 'sprung') { zeichneSprungHeute(ziel, tag, liste, i); return; }
 
   ziel.innerHTML = `
     ${tagesKopf(tag, i)}

@@ -4,7 +4,7 @@
 // Bei jeder Änderung an den Dateien die VERSION erhöhen, sonst behalten bereits
 // installierte Geräte den alten Stand.
 
-const VERSION = 'patella-v5';
+const VERSION = 'patella-v6';
 
 const DATEIEN = [
   './',
@@ -25,6 +25,11 @@ const DATEIEN = [
   './schedule.js',
   './kalender.js',
   './vorlagen.js',
+  './sprung-data.js',
+  './sprung-logik.js',
+  './sprung-state.js',
+  './view-sprung.js',
+  './view-sprung-plan.js',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
@@ -42,14 +47,28 @@ self.addEventListener('install', (ereignis) => {
   );
 });
 
+// Nach einem Update laufen offene Fenster noch mit den Dateien der alten
+// Fassung (oft samt alter index.html aus dem Browser-Cache). Sie werden einmal
+// neu geladen, damit sofort die neue Fassung laeuft und kein Wert unter der
+// alten erfasst wird. navigate() gelingt erst, wenn die Aktivierung
+// abgeschlossen ist; deshalb kurz danach, genau einmal (Chromium meldet auch
+// erfolgreiche Neuladen teils als Fehler - eine Wiederholung lüde doppelt).
+function fensterNeuLaden() {
+  self.clients.matchAll({ type: 'window' })
+    .then((fenster) => Promise.all(fenster.map((f) => f.navigate(f.url).catch(() => null))))
+    .catch(() => {});
+}
+
 self.addEventListener('activate', (ereignis) => {
-  ereignis.waitUntil(
-    caches.keys()
-      .then((namen) => Promise.all(
-        namen.filter((name) => name !== VERSION).map((name) => caches.delete(name))
-      ))
-      .then(() => self.clients.claim())
-  );
+  const fertig = caches.keys()
+    .then((namen) => {
+      const alte = namen.filter((name) => name !== VERSION);
+      return Promise.all(alte.map((name) => caches.delete(name))).then(() => alte.length > 0);
+    })
+    .then((warUpdate) => self.clients.claim().then(() => warUpdate));
+  ereignis.waitUntil(fertig);
+  // Bei der ersten Installation gibt es keine alte Fassung und nichts neu zu laden.
+  fertig.then((warUpdate) => { if (warUpdate) setTimeout(fensterNeuLaden, 250); });
 });
 
 self.addEventListener('fetch', (ereignis) => {
